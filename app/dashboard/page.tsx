@@ -18,7 +18,6 @@ export default function DashboardPage() {
       if (!session) { router.push('/login'); return }
       setUserEmail(session.user.email || '')
 
-      // Obtener rol del usuario
       const { data: profile } = await supabase
         .from('profiles')
         .select('role, full_name')
@@ -44,7 +43,7 @@ export default function DashboardPage() {
   const loadData = async () => {
     const { data: alertsData } = await supabase
       .from('alerts')
-      .select('*, cameras(name, location), analyses(description)')
+      .select('*, cameras(name, location), analyses(description, image_url)')
       .eq('status', 'activa')
       .order('created_at', { ascending: false })
 
@@ -101,13 +100,11 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex gap-3">
-          {/* Solo el dueño puede ir al nodo */}
           {userRole === 'dueno' && (
             <button onClick={() => router.push('/nodo')} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm transition">
               📷 Nodo
             </button>
           )}
-          {/* Solo el dueño puede ver el historial completo */}
           {userRole === 'dueno' && (
             <button onClick={() => router.push('/historial')} className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition">
               📋 Historial
@@ -133,7 +130,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Alertas activas - ambos roles pueden ver y resolver */}
+      {/* Alertas activas */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4 text-red-400">⚠️ Quiebres de Stock Detectados</h2>
         {alerts.length === 0 ? (
@@ -143,15 +140,22 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-4">
             {alerts.map((alert) => (
-              <div key={alert.id} className="bg-gray-800 rounded-xl p-4 border border-red-900 flex gap-4">
-                <div className="flex-1 flex justify-between items-center">
-                  <div>
+              <div key={alert.id} className="bg-gray-800 rounded-xl p-4 border border-red-900">
+                <div className="flex gap-4 flex-1 items-center justify-between">
+                  {/* Imagen de evidencia */}
+                  <div className="w-24 h-24 bg-black rounded-lg overflow-hidden flex-shrink-0 border border-gray-700">
+                    {alert.analyses?.image_url ? (
+                      <img src={alert.analyses.image_url} alt="Evidencia" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">SIN IMG</div>
+                    )}
+                  </div>
+                  <div className="flex-1">
                     <p className="font-bold text-lg">{alert.cameras?.name}</p>
                     <p className="text-gray-400 text-sm">📍 {alert.cameras?.location}</p>
                     <p className="text-red-300 text-xs mt-1 italic">{alert.analyses?.description || 'Detectado automáticamente'}</p>
                     <p className="text-gray-500 text-xs mt-1">{new Date(alert.created_at).toLocaleString('es-CL')}</p>
                   </div>
-                  {/* Ambos pueden resolver */}
                   <button
                     onClick={() => resolveAlert(alert.id)}
                     className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold transition"
