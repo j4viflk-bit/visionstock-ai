@@ -99,7 +99,7 @@ export default function HistorialPage() {
             onClick={() => router.push('/dashboard')}
             className="mt-4 md:mt-0 flex items-center gap-2 bg-white/5 hover:bg-white/10 text-gray-300 px-5 py-2.5 rounded-xl text-sm transition-all border border-white/10"
           >
-            ← Volver al Dashboard
+             Volver al Dashboard
           </button>
         </div>
 
@@ -134,7 +134,7 @@ export default function HistorialPage() {
               onClick={loadData}
               className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-500 text-white px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/40"
             >
-              🔍 Aplicar Filtros
+               Aplicar Filtros
             </button>
             <button
               onClick={() => { setFiltroCamera(''); setFiltroFecha(''); }}

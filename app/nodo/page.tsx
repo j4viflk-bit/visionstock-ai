@@ -34,9 +34,9 @@ export default function NodoPage() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream
       }
-      setStatus('Cámara vinculada correctamente ✅')
+      setStatus('Cámara vinculada correctamente ')
     } catch {
-      setStatus('Error: No se detectó hardware de cámara ❌')
+      setStatus('Error: No se detectó hardware de cámara ')
     }
   }
 
@@ -62,13 +62,13 @@ export default function NodoPage() {
 
       if (data.success) {
         const esVacio = data.result.status === 'vacio'
-        setLastResult(esVacio ? `⚠️ FALTANTE: ${data.result.description}` : `✅ STOCK OK`)
+        setLastResult(esVacio ? `⚠️ FALTANTE: ${data.result.description}` : ` STOCK OK`)
         setStatus(`Sincronizado: ${new Date().toLocaleTimeString('es-CL')}`)
       } else {
-        setStatus('Error en procesamiento de nube ❌')
+        setStatus('Error en procesamiento de nube ')
       }
     } catch {
-      setStatus('Error de red: Reintentando... ❌')
+      setStatus('Error de red: Reintentando... ')
     }
   }
 
@@ -137,11 +137,11 @@ export default function NodoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           
-          {/* Columna Izquierda: Cámara (EL VISOR PRO con Efectos) */}
+         
           <div className="lg:col-span-8">
             <div className="relative bg-gray-950 rounded-3xl overflow-hidden border-2 border-white/5 shadow-2xl group shadow-blue-900/10">
               
-              {/* Overlay de visor de cámara */}
+              
               <div className="absolute inset-0 z-20 pointer-events-none border-[15px] border-black/10" />
               <div className="absolute top-5 left-5 z-30 flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm border border-white/10">
                 <div className={`w-2 h-2 rounded-full ${active ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`} />
@@ -174,7 +174,7 @@ export default function NodoPage() {
               )}
             </div>
 
-            {/* Estado debajo de la cámara */}
+            
             <div className="mt-5 bg-gray-800/60 border border-white/5 p-5 rounded-2xl flex justify-between items-center shadow-lg">
                <div className="flex items-center gap-3.5">
                   <div className="bg-gray-700 p-2.5 rounded-xl border border-white/5">
@@ -194,7 +194,7 @@ export default function NodoPage() {
             </div>
           </div>
 
-          {/* Columna Derecha: Controles */}
+          
           <div className="lg:col-span-4 space-y-6 lg:space-y-8">
             
             {/* Panel de Configuración */}
@@ -227,14 +227,14 @@ export default function NodoPage() {
                     onClick={startMonitoring}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-extrabold py-4 rounded-2xl transition-all shadow-lg shadow-blue-900/50 transform active:scale-95 flex items-center justify-center gap-2.5 text-base"
                   >
-                    🚀 INICIAR MONITOREO
+                     INICIAR MONITOREO
                   </button>
                 ) : (
                   <button
                     onClick={stopMonitoring}
                     className="w-full bg-red-950/30 hover:bg-red-950/50 text-red-300 border border-red-500/20 font-bold py-4 rounded-2xl transition-all transform active:scale-95 text-base"
                   >
-                    ⏹️ PAUSAR SISTEMA
+                     PAUSAR SISTEMA
                   </button>
                 )}
               </div>

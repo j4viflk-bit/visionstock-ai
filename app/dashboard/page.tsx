@@ -108,7 +108,7 @@ export default function DashboardPage() {
               <p className="text-gray-500 text-xs">{userEmail}</p>
             </div>
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${userRole === 'dueno' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'}`}>
-              {userRole === 'dueno' ? '👑 Dueño' : '👤 Empleado'}
+              {userRole === 'dueno' ? ' Dueño' : ' Empleado'}
             </span>
           </div>
           <div className="flex gap-2">
@@ -205,7 +205,7 @@ export default function DashboardPage() {
                       onClick={() => resolveAlert(alert.id)}
                       className="flex-shrink-0 bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-lg shadow-green-900/30"
                     >
-                      ✅ Repuesto
+                       Repuesto 
                     </button>
                   </div>
                 </div>
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                       <p className="text-gray-600 text-xs mt-0.5">{new Date(analysis.created_at).toLocaleString('es-CL')}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${analysis.status === 'vacio' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-green-500/20 text-green-300 border border-green-500/30'}`}>
-                      {analysis.status === 'vacio' ? '⚠️ Faltante' : '✅ OK'}
+                      {analysis.status === 'vacio' ? '⚠️ Faltante' : ' OK'}
                     </span>
                   </div>
                 ))
