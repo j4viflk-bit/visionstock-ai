@@ -166,7 +166,7 @@ export default function NodoPage() {
               {!active && (
                 <div className="absolute inset-0 flex items-center justify-center z-20">
                   <div className="text-center p-8 bg-gray-900/80 rounded-2xl backdrop-blur-sm border border-white/5">
-                    <span className="text-5xl mb-4 block">📷</span>
+                    <span className="text-5xl mb-4 block">📽️</span>
                     <p className="text-gray-400 font-mono text-sm uppercase tracking-widest italic">Cámara en espera</p>
                     <p className="text-gray-600 text-xs mt-1">Inicia el monitoreo para activar el visor</p>
                   </div>
@@ -178,7 +178,7 @@ export default function NodoPage() {
             <div className="mt-5 bg-gray-800/60 border border-white/5 p-5 rounded-2xl flex justify-between items-center shadow-lg">
                <div className="flex items-center gap-3.5">
                   <div className="bg-gray-700 p-2.5 rounded-xl border border-white/5">
-                    <span className="text-xl">📡</span>
+                    <span className="text-xl">...</span>
                   </div>
                   <div>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Estado Operativo</p>

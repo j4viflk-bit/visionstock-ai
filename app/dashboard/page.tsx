@@ -115,10 +115,10 @@ export default function DashboardPage() {
             {userRole === 'dueno' && (
               <>
                 <button onClick={() => router.push('/nodo')} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-sm transition">
-                  📷 Nodo
+                  Nodo
                 </button>
                 <button onClick={() => router.push('/historial')} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-sm transition">
-                  📋 Historial
+                 Historial
                 </button>
               </>
             )}
@@ -135,15 +135,15 @@ export default function DashboardPage() {
         {userRole === 'dueno' && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[
-              { label: 'Alertas activas', value: alerts.length, color: 'red', icon: '⚠️' },
-              { label: 'Análisis hoy', value: analyses.length, color: 'blue', icon: '🔍' },
-              { label: 'Cámaras activas', value: 1, color: 'green', icon: '📷' },
-              { label: 'Sistema', value: '✓ Online', color: 'purple', icon: '⚡' },
+              { label: 'Alertas activas', value: alerts.length, color: 'red' },
+              { label: 'Análisis hoy', value: analyses.length, color: 'blue' },
+              { label: 'Cámaras activas', value: 1, color: 'green'},
+              { label: 'Sistema', value: '✓ Online', color: 'purple' },
             ].map((stat) => (
               <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl p-5">
                 <div className="flex justify-between items-start mb-3">
                   <p className="text-gray-400 text-xs">{stat.label}</p>
-                  <span className="text-lg">{stat.icon}</span>
+        
                 </div>
                 <p className={`text-2xl font-bold ${stat.color === 'red' ? 'text-red-400' : stat.color === 'blue' ? 'text-blue-400' : stat.color === 'green' ? 'text-green-400' : 'text-purple-400'}`}>
                   {stat.value}

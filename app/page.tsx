@@ -55,10 +55,10 @@ export default function Home() {
 
         {/* Tags */}
         <div className="flex justify-center gap-3 mb-12 flex-wrap">
-          <span className="bg-blue-900 text-blue-300 px-3 py-1 rounded-full text-xs font-semibold">📷 Cámara IoT</span>
-          <span className="bg-purple-900 text-purple-300 px-3 py-1 rounded-full text-xs font-semibold">🤖 IA Multimodal</span>
-          <span className="bg-green-900 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">⚡ Tiempo Real</span>
-          <span className="bg-yellow-900 text-yellow-300 px-3 py-1 rounded-full text-xs font-semibold">📱 Telegram</span>
+          <span className="bg-blue-900 text-blue-300 px-3 py-1 rounded-full text-xs font-semibold"> Cámara IoT</span>
+          <span className="bg-purple-900 text-purple-300 px-3 py-1 rounded-full text-xs font-semibold"> IA Multimodal</span>
+          <span className="bg-green-900 text-green-300 px-3 py-1 rounded-full text-xs font-semibold"> Tiempo Real</span>
+          <span className="bg-yellow-900 text-yellow-300 px-3 py-1 rounded-full text-xs font-semibold"> Telegram</span>
         </div>
 
         {/* Countdown */}
