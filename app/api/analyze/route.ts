@@ -39,16 +39,20 @@ export async function POST(req: NextRequest) {
             role: 'user',
             content: [
               {
-                type: 'text',
-                text: `Analiza esta imagen de una estantería de tienda.
-                Responde SOLO con un JSON con este formato exacto, sin texto adicional:
-                {
-                  "status": "vacio" o "con_producto",
-                  "confidence": número entre 0 y 1,
-                  "description": "descripción breve en español de lo que ves"
-                }
-                Si el estante está vacío o casi vacío (menos del 20% lleno), usa "vacio".
-                Si tiene productos visibles, usa "con_producto".`
+                text: `Eres un sistema de monitoreo de inventario para una tienda retail. Analiza esta imagen con MÁXIMA RIGUROSIDAD.
+
+                      INSTRUCCIONES ESTRICTAS:
+                      - Examina CADA sección, estante y espacio visible en la imagen
+                      - Si HAY ALGÚN espacio, sección o estante que esté vacío o con menos del 30% de productos → status DEBE ser "vacio"
+                      - Solo usa "con_producto" si TODOS los espacios visibles están bien abastecidos (más del 70% llenos)
+                      - Sé conservador: ante la duda, reporta "vacio"
+
+                      Responde SOLO con este JSON exacto, sin texto adicional:
+                      {
+                        "status": "vacio" o "con_producto",
+                        "confidence": número entre 0 y 1,
+                        "description": "descripción específica en español indicando qué secciones están vacías y cuáles tienen producto"
+                      }`
               },
               {
                 type: 'image_url',
