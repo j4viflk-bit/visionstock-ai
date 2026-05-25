@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
     const { cameraName, location, time, imageUrl } = await req.json()
 
     // Mensaje mejorado con link a la imagen
-    const message = `⚠️ *ALERTA DE STOCK - VisionStock AI*\n\n📷 Cámara: ${cameraName}\n📍 Ubicación: ${location}\n🕐 Hora: ${time}\n\n🖼️ [Ver captura del estante](${imageUrl})\n\n¡Se detectó un estante vacío! Revisar y reponer producto.`
+    const message = ` *ALERTA DE STOCK - VisionStock AI*\n\n Cámara: ${cameraName}\n Ubicación: ${location}\n Hora: ${time}\n\n🖼️ [Ver captura del estante](${imageUrl})\n\n¡Se detectó un estante vacío! Revisar y reponer producto.`
 
     const response = await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,

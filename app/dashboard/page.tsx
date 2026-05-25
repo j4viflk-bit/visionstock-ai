@@ -47,11 +47,14 @@ export default function DashboardPage() {
       .eq('status', 'activa')
       .order('created_at', { ascending: false })
 
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
     const { data: analysesData } = await supabase
-      .from('analyses')
-      .select('*, cameras(name, location)')
-      .order('created_at', { ascending: false })
-      .limit(10)
+    .from('analyses')
+    .select('*, cameras(name, location)')
+    .gte('created_at', today.toISOString())
+    .order('created_at', { ascending: false })
 
     setAlerts(alertsData || [])
     setAnalyses(analysesData || [])
