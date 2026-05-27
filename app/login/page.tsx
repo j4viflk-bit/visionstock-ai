@@ -24,35 +24,34 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen bg-gray-900 overflow-hidden relative">
+    <main className="flex min-h-screen overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a00 50%, #0a0a0a 100%)' }}>
 
       {/* Fondo decorativo */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-950 via-gray-900 to-purple-950" />
-        <div className="absolute top-20 -left-20 w-72 h-72 bg-blue-600 rounded-full opacity-10 blur-3xl" />
-        <div className="absolute bottom-20 -right-20 w-72 h-72 bg-purple-600 rounded-full opacity-10 blur-3xl" />
+        <div className="absolute top-20 -left-20 w-72 h-72 rounded-full opacity-10 blur-3xl" style={{ background: '#ea580c' }} />
+        <div className="absolute bottom-20 -right-20 w-72 h-72 rounded-full opacity-10 blur-3xl" style={{ background: '#dc2626' }} />
       </div>
 
-      {/* Panel izquierdo - info */}
+      {/* Panel izquierdo */}
       <div className="hidden lg:flex flex-col justify-center px-16 w-1/2 relative z-10">
-        <div className="bg-blue-600 rounded-2xl p-4 w-fit mb-8">
+        <div className="rounded-2xl p-4 w-fit mb-8" style={{ background: 'linear-gradient(135deg, #ea580c, #dc2626)' }}>
           <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
           </svg>
         </div>
         <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
-          VisionStock <span className="text-blue-400">AI</span>
+          VisionStock <span style={{ color: '#f97316' }}>AI</span>
         </h1>
         <p className="text-gray-400 text-lg mb-10">Monitoreo inteligente de inventario para PYMES usando visión computacional.</p>
 
         <div className="flex flex-col gap-4">
           {[
-            { icon: '📷', title: 'Captura automática', desc: 'Fotografía estantes cada 5 minutos' },
-            { icon: '🤖', title: 'IA Multimodal', desc: 'Detecta quiebres de stock al instante' },
-            { icon: '⚡', title: 'Alertas en tiempo real', desc: 'Notificaciones inmediatas por Telegram' },
+            { title: 'Captura automática', desc: 'Fotografía estantes cada 5 minutos' },
+            { title: 'IA Multimodal', desc: 'Detecta quiebres de stock al instante' },
+            { title: 'Alertas en tiempo real', desc: 'Notificaciones inmediatas por Telegram' },
           ].map((item) => (
-            <div key={item.title} className="flex items-center gap-4 bg-white/5 rounded-xl p-4 border border-white/10">
-              <span className="text-2xl">{item.icon}</span>
+            <div key={item.title} className="flex items-center gap-4 rounded-xl p-4 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}>
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#f97316' }} />
               <div>
                 <p className="text-white font-semibold text-sm">{item.title}</p>
                 <p className="text-gray-400 text-xs">{item.desc}</p>
@@ -68,7 +67,7 @@ export default function LoginPage() {
 
           {/* Logo mobile */}
           <div className="flex lg:hidden items-center gap-3 mb-8">
-            <div className="bg-blue-600 rounded-xl p-2">
+            <div className="rounded-xl p-2" style={{ background: 'linear-gradient(135deg, #ea580c, #dc2626)' }}>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
               </svg>
@@ -76,7 +75,7 @@ export default function LoginPage() {
             <span className="text-white font-bold text-xl">VisionStock AI</span>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm">
+          <div className="rounded-2xl p-8 border backdrop-blur-sm" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}>
             <h2 className="text-2xl font-bold text-white mb-1">Bienvenido</h2>
             <p className="text-gray-400 text-sm mb-8">Ingresa tus credenciales para continuar</p>
 
@@ -89,7 +88,10 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                  className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-500 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full text-white placeholder-gray-600 px-4 py-3 rounded-xl outline-none transition"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  onFocus={(e) => e.target.style.borderColor = '#ea580c'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                 />
               </div>
               <div>
@@ -100,20 +102,24 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                  className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-500 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full text-white placeholder-gray-600 px-4 py-3 rounded-xl outline-none transition"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  onFocus={(e) => e.target.style.borderColor = '#ea580c'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                 />
               </div>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-                  <p className="text-red-400 text-sm">⚠️ {error}</p>
+                <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.2)' }}>
+                  <p className="text-red-400 text-sm">{error}</p>
                 </div>
               )}
 
               <button
                 onClick={handleLogin}
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all transform active:scale-95 shadow-lg shadow-blue-900/50 mt-2"
+                className="w-full text-white font-semibold py-3 rounded-xl transition-all transform active:scale-95 mt-2"
+                style={{ background: loading ? '#7c3518' : 'linear-gradient(135deg, #ea580c, #dc2626)', opacity: loading ? 0.7 : 1 }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -123,7 +129,7 @@ export default function LoginPage() {
                     </svg>
                     Ingresando...
                   </span>
-                ) : 'Ingresar →'}
+                ) : 'Ingresar'}
               </button>
             </div>
           </div>
