@@ -260,15 +260,63 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#dc2626' }} />
-                        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#f87171' }}>Alerta activa</p>
-                      </div>
-                      <p className="font-bold text-xl mb-1">{alert.cameras?.name}</p>
-                      <p className="text-gray-400 text-sm mb-2">{alert.cameras?.location}</p>
-                      <p className="text-gray-500 text-xs italic">{alert.analyses?.description || 'Detectado automáticamente'}</p>
-                      <p className="text-gray-600 text-xs mt-2">{new Date(alert.created_at).toLocaleString('es-CL')}</p>
-                    </div>
+  <div className="flex items-center gap-2 mb-1">
+    <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#dc2626' }} />
+    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#f87171' }}>Alerta activa</p>
+    {alert.analyses?.urgencia && (
+      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
+        background: alert.analyses.urgencia === 'alta' ? 'rgba(220,38,38,0.3)' : alert.analyses.urgencia === 'media' ? 'rgba(234,88,12,0.3)' : 'rgba(234,179,8,0.3)',
+        color: alert.analyses.urgencia === 'alta' ? '#f87171' : alert.analyses.urgencia === 'media' ? '#fb923c' : '#fde047'
+      }}>
+        Urgencia {alert.analyses.urgencia}
+      </span>
+    )}
+  </div>
+  <p className="font-bold text-xl mb-1">{alert.cameras?.name}</p>
+  <p className="text-gray-400 text-sm mb-1">{alert.cameras?.location}</p>
+
+  {/* Nivel de llenado */}
+  {alert.analyses?.nivel_llenado !== undefined && (
+    <div className="mb-2">
+      <div className="flex justify-between items-center mb-1">
+        <p className="text-xs text-gray-500">Nivel de llenado</p>
+        <p className="text-xs font-bold" style={{ color: alert.analyses.nivel_llenado < 30 ? '#f87171' : '#fb923c' }}>
+          {alert.analyses.nivel_llenado}%
+        </p>
+      </div>
+      <div className="w-full h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }}>
+        <div className="h-1.5 rounded-full transition-all" style={{
+          width: `${alert.analyses.nivel_llenado}%`,
+          background: alert.analyses.nivel_llenado < 30 ? '#dc2626' : '#ea580c'
+        }} />
+      </div>
+    </div>
+  )}
+
+  {/* Zonas vacías */}
+  {alert.analyses?.zonas_vacias && (
+    <p className="text-xs mb-1" style={{ color: '#f87171' }}>
+      Zonas vacías: {alert.analyses.zonas_vacias}
+    </p>
+  )}
+
+  {/* Productos detectados */}
+  {alert.analyses?.productos_detectados && (
+    <p className="text-xs text-gray-400 mb-1">
+      Productos visibles: {alert.analyses.productos_detectados}
+    </p>
+  )}
+
+  {/* Recomendación */}
+  {alert.analyses?.recomendacion && (
+    <div className="mt-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(234,88,12,0.1)', border: '1px solid rgba(234,88,12,0.2)' }}>
+      <p className="text-xs font-semibold mb-0.5" style={{ color: '#fb923c' }}>Recomendación IA</p>
+      <p className="text-xs text-gray-400">{alert.analyses.recomendacion}</p>
+    </div>
+  )}
+
+  <p className="text-gray-600 text-xs mt-2">{new Date(alert.created_at).toLocaleString('es-CL')}</p>
+</div>
                     <button
                       onClick={() => resolveAlert(alert.id)}
                       className="flex-shrink-0 text-white px-6 py-3 rounded-xl font-bold transition-all transform active:scale-95"

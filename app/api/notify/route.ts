@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { cameraName, location, time, imageUrl } = await req.json()
+    const { cameraName, location, time } = await req.json()
 
-    // Mensaje mejorado con link a la imagen
-    const message = ` *ALERTA DE STOCK - VisionStock AI*\n\n Cámara: ${cameraName}\n Ubicación: ${location}\n Hora: ${time}\n\n🖼️ [Ver captura del estante](${imageUrl})\n\n¡Se detectó un estante vacío! Revisar y reponer producto.`
+    const mensaje = `ALERTA DE STOCK - VisionStock AI
+
+Camara: ${cameraName}
+Ubicacion: ${location}
+Hora: ${time}
+
+Ver dashboard: https://visionstock-ai.vercel.app/dashboard`
 
     const response = await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -14,7 +19,7 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: process.env.TELEGRAM_CHAT_ID,
-          text: message,
+          text: mensaje,
           parse_mode: 'Markdown'
         })
       }

@@ -39,10 +39,26 @@ export async function POST(req: NextRequest) {
             content: [
               {
                 type: 'text',
-                text: `Analiza esta imagen de una estantería. Responde SOLO con JSON, sin texto adicional:
-{"status": "vacio" o "con_producto", "confidence": 0.0 a 1.0, "description": "descripción breve"}
-Usa "vacio" si hay algún espacio vacío visible. Usa "con_producto" si todos los espacios tienen productos.`
-              },
+                text: `Eres un sistema experto en gestión de inventario retail. Analiza esta imagen de una estantería de tienda con MÁXIMO DETALLE.
+
+Responde SOLO con este JSON exacto, sin texto adicional:
+{
+  "status": "vacio" o "con_producto",
+  "confidence": número entre 0 y 1,
+  "nivel_llenado": número entre 0 y 100 que representa el porcentaje de llenado del estante,
+  "zonas_vacias": "descripción de qué zonas específicas están vacías (ej: zona superior izquierda, fila central)",
+  "productos_detectados": "descripción de los productos visibles (tipo, color, categoría)",
+  "recomendacion": "recomendación específica de qué producto reponer y dónde basándote en los productos visibles",
+  "urgencia": "baja", "media" o "alta",
+  "description": "resumen general del estado del estante en español"
+}
+
+Reglas:
+- Si el nivel_llenado es menor a 30%, status debe ser "vacio" y urgencia "alta"
+- Si el nivel_llenado está entre 30% y 60%, status puede ser "con_producto" pero urgencia "media"  
+- Si ves productos de una categoría específica, recomienda reponer productos similares
+- Sé específico en zonas_vacias indicando posición (superior/inferior/izquierda/derecha/centro)
+- En productos_detectados describe color, tipo y categoría si es visible`},
               {
                 type: 'image_url',
                 image_url: {
@@ -93,14 +109,19 @@ Usa "vacio" si hay algún espacio vacío visible. Usa "con_producto" si todos lo
 
     // 3. Guardar análisis en Supabase
     const { data: analysis, error: analysisError } = await supabase
-      .from('analyses')
-      .insert({
-        camera_id: cameraId,
-        status: result.status,
-        confidence: result.confidence,
-        description: result.description,
-        image_url: publicUrl
-      })
+  .from('analyses')
+  .insert({
+    camera_id: cameraId,
+    status: result.status,
+    confidence: result.confidence,
+    description: result.description,
+    image_url: publicUrl,
+    nivel_llenado: result.nivel_llenado || 0,
+    zonas_vacias: result.zonas_vacias || '',
+    productos_detectados: result.productos_detectados || '',
+    recomendacion: result.recomendacion || '',
+    urgencia: result.urgencia || 'baja'
+  })
       .select()
       .single()
 
