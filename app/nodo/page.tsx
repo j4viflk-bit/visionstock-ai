@@ -14,6 +14,8 @@ export default function NodoPage() {
   const [active, setActive] = useState(false)
   const [lastResult, setLastResult] = useState('')
   const [lastStatus, setLastStatus] = useState('')
+  const [lastRecomendacion, setLastRecomendacion] = useState('')
+  const [nivelLlenado, setNivelLlenado] = useState(0)
   const [captureCount, setCaptureCount] = useState(0)
   const intervalRef = useRef<any>(null)
 
@@ -31,8 +33,8 @@ export default function NodoPage() {
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-  video: { facingMode: { ideal: 'environment' } } 
-})
+        video: { facingMode: { ideal: 'environment' } } 
+      })
       if (videoRef.current) {
         videoRef.current.srcObject = stream
       }
@@ -66,6 +68,8 @@ export default function NodoPage() {
       if (data.success) {
         setLastStatus(data.result.status)
         setLastResult(data.result.description)
+        setLastRecomendacion(data.result.recomendacion || '')
+        setNivelLlenado(data.result.nivel_llenado || 0)
         setStatus(`Ultimo analisis: ${new Date().toLocaleTimeString('es-CL')}`)
         setCaptureCount(prev => prev + 1)
       } else {
@@ -101,6 +105,8 @@ export default function NodoPage() {
     setStatus('Monitoreo detenido')
     setLastResult('')
     setLastStatus('')
+    setLastRecomendacion('')
+    setNivelLlenado(0)
   }
 
   return (
@@ -204,10 +210,34 @@ export default function NodoPage() {
                 <p className="text-xs uppercase tracking-wide mb-2" style={{ color: lastStatus === 'vacio' ? '#f87171' : '#4ade80' }}>
                   Ultimo reporte IA
                 </p>
-                <p className="font-bold text-lg mb-1" style={{ color: lastStatus === 'vacio' ? '#f87171' : '#4ade80' }}>
+                <p className="font-bold text-lg mb-2" style={{ color: lastStatus === 'vacio' ? '#f87171' : '#4ade80' }}>
                   {lastStatus === 'vacio' ? 'STOCK FALTANTE' : 'STOCK OK'}
                 </p>
-                <p className="text-gray-400 text-xs">{lastResult}</p>
+
+                {/* Nivel de llenado */}
+                <div className="mb-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-xs text-gray-500">Nivel de llenado</p>
+                    <p className="text-xs font-bold" style={{ color: nivelLlenado < 30 ? '#f87171' : '#fb923c' }}>
+                      {nivelLlenado}%
+                    </p>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                    <div className="h-1.5 rounded-full transition-all" style={{
+                      width: `${nivelLlenado}%`,
+                      background: nivelLlenado < 30 ? '#dc2626' : nivelLlenado < 60 ? '#ea580c' : '#16a34a'
+                    }} />
+                  </div>
+                </div>
+
+                <p className="text-gray-400 text-xs mb-2">{lastResult}</p>
+
+                {lastRecomendacion && lastRecomendacion !== 'Sin recomendación, estante bien abastecido' && (
+                  <div className="mt-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(234,88,12,0.15)', border: '1px solid rgba(234,88,12,0.2)' }}>
+                    <p className="text-xs font-semibold mb-1" style={{ color: '#fb923c' }}>Recomendacion</p>
+                    <p className="text-xs text-gray-400">{lastRecomendacion}</p>
+                  </div>
+                )}
               </div>
             )}
 

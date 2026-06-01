@@ -47,10 +47,10 @@ export default function DashboardPage() {
     today.setHours(0, 0, 0, 0)
 
     const { data: alertsData } = await supabase
-      .from('alerts')
-      .select('*, cameras(name, location), analyses(description, image_url)')
-      .eq('status', 'activa')
-      .order('created_at', { ascending: false })
+  .from('alerts')
+  .select('*, cameras(name, location), analyses(description, image_url, nivel_llenado, zonas_vacias, productos_detectados, recomendacion, urgencia)')
+  .eq('status', 'activa')
+  .order('created_at', { ascending: false })
 
     const { data: analysesData } = await supabase
       .from('analyses')
