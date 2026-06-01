@@ -69,7 +69,7 @@ Reglas:
           }
         ],
         temperature: 0.1,
-        max_tokens: 200
+        max_tokens: 500
       })
     })
 
@@ -86,7 +86,8 @@ Reglas:
     }
 
     // Limpiar respuesta y parsear JSON
-    const jsonMatch = rawText.match(/\{[\s\S]*?\}/)
+    const cleaned = rawText.replace(/```json|```/g, '').trim()
+const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       console.error('No se encontró JSON en la respuesta:', rawText)
       return NextResponse.json({ error: 'Error al procesar imagen' }, { status: 500 })
