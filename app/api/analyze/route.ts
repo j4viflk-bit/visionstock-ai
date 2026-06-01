@@ -93,12 +93,31 @@ Reglas:
     }
 
     let result
-    try {
-      result = JSON.parse(jsonMatch[0])
-    } catch (parseError) {
-      console.error('Error al parsear JSON:', jsonMatch[0])
-      return NextResponse.json({ error: 'Error al procesar imagen' }, { status: 500 })
-    }
+try {
+  const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    console.error('No se encontró JSON en respuesta:', rawText)
+    return NextResponse.json({ error: 'Error al procesar imagen' }, { status: 500 })
+  }
+  result = JSON.parse(jsonMatch[0])
+} catch (parseError) {
+  console.error('Error al parsear JSON:', rawText)
+  return NextResponse.json({ error: 'Error al procesar imagen' }, { status: 500 })
+}
+
+// Valores por defecto si faltan campos
+result.status = result.status || 'con_producto'
+result.confidence = result.confidence || 0.5
+result.description = result.description || 'Análisis completado'
+result.nivel_llenado = result.nivel_llenado ?? 50
+result.zonas_vacias = result.zonas_vacias || ''
+result.productos_detectados = result.productos_detectados || ''
+result.recomendacion = result.recomendacion || ''
+result.urgencia = result.urgencia || 'baja'
+
+if (!['vacio', 'con_producto'].includes(result.status)) {
+  result.status = 'con_producto'
+}
 
     // Validar campos
     if (!result.status || !['vacio', 'con_producto'].includes(result.status)) {
