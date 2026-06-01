@@ -185,15 +185,20 @@ export default function HistorialPage() {
               analyses.map((a, i) => (
                 <div
                   key={a.id}
-                  className="px-5 py-4 flex justify-between items-center hover:bg-white/5 transition"
+                  className="px-5 py-4 flex justify-between items-start hover:bg-white/5 transition"
                   style={{ borderBottom: i !== analyses.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
                 >
-                  <div>
+                  <div className="flex-1 pr-4">
                     <p className="text-sm font-medium">{a.cameras?.name}</p>
                     <p className="text-gray-500 text-xs mt-0.5">{a.description}</p>
+                    {a.recomendacion && a.recomendacion !== 'Sin recomendación, estante bien abastecido' && (
+                      <p className="text-xs mt-1" style={{ color: '#fb923c' }}>
+                        Recomendación: {a.recomendacion}
+                      </p>
+                    )}
                     <p className="text-gray-600 text-xs mt-0.5">{new Date(a.created_at).toLocaleString('es-CL')}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <span className="px-3 py-1 rounded-full text-xs font-bold"
                       style={a.status === 'vacio'
                         ? { background: 'rgba(220,38,38,0.2)', color: '#f87171', border: '1px solid rgba(220,38,38,0.3)' }
@@ -202,6 +207,11 @@ export default function HistorialPage() {
                       {a.status === 'vacio' ? 'Faltante' : 'OK'}
                     </span>
                     <span className="text-gray-600 text-xs">{Math.round(a.confidence * 100)}% confianza</span>
+                    {a.nivel_llenado !== null && a.nivel_llenado !== undefined && (
+                      <span className="text-xs" style={{ color: a.nivel_llenado < 30 ? '#f87171' : '#fb923c' }}>
+                        {a.nivel_llenado}% lleno
+                      </span>
+                    )}
                   </div>
                 </div>
               ))
