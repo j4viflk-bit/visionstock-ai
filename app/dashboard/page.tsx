@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [analyses, setAnalyses] = useState<any[]>([])
   const [weekData, setWeekData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [prediccion, setPrediccion] = useState<any>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -45,6 +46,10 @@ export default function DashboardPage() {
   const loadData = async () => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    // Cargar predicción
+const predRes = await fetch('/api/prediccion')
+const predData = await predRes.json()
+setPrediccion(predData)
 
     const { data: alertsData } = await supabase
   .from('alerts')
@@ -192,6 +197,70 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
+        {/* Predicción */}
+{userRole === 'dueno' && prediccion?.prediccion && (
+  <div className="rounded-2xl p-5 mb-8" style={{
+    background: prediccion.prediccion.alerta ? 'rgba(234,88,12,0.1)' : 'rgba(255,255,255,0.03)',
+    border: `1px solid ${prediccion.prediccion.alerta ? 'rgba(234,88,12,0.3)' : 'rgba(255,255,255,0.08)'}`
+  }}>
+    <div className="flex justify-between items-start mb-4">
+      <div>
+        <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#fb923c' }}>Predicción IA</p>
+        <h3 className="font-bold text-white">Análisis de patrones de quiebre</h3>
+        <p className="text-gray-500 text-xs mt-1">{prediccion.prediccion.periodo} · {prediccion.prediccion.total_quiebres_analizados} quiebres analizados</p>
+      </div>
+      {prediccion.prediccion.alerta && (
+        <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(234,88,12,0.2)', color: '#fb923c', border: '1px solid rgba(234,88,12,0.3)' }}>
+          Hora crítica
+        </span>
+      )}
+    </div>
+
+    {prediccion.prediccion.mensaje && (
+      <p className="text-sm text-gray-300 mb-4">{prediccion.prediccion.mensaje}</p>
+    )}
+
+    <div className="grid grid-cols-2 gap-4">
+      {/* Horas críticas */}
+      <div>
+        <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Horas con más quiebres</p>
+        <div className="flex flex-col gap-2">
+          {prediccion.horas_criticas?.map((h: any, i: number) => (
+            <div key={i} className="flex justify-between items-center">
+              <p className="text-xs text-gray-300">{h.label}</p>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 rounded-full" style={{
+                  width: `${Math.min(h.quiebres * 10, 80)}px`,
+                  background: i === 0 ? '#ea580c' : 'rgba(234,88,12,0.4)'
+                }} />
+                <p className="text-xs text-gray-500">{h.quiebres}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Días críticos */}
+      <div>
+        <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Días con más quiebres</p>
+        <div className="flex flex-col gap-2">
+          {prediccion.dias_criticos?.map((d: any, i: number) => (
+            <div key={i} className="flex justify-between items-center">
+              <p className="text-xs text-gray-300">{d.label}</p>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 rounded-full" style={{
+                  width: `${Math.min(d.quiebres * 10, 80)}px`,
+                  background: i === 0 ? '#dc2626' : 'rgba(220,38,38,0.4)'
+                }} />
+                <p className="text-xs text-gray-500">{d.quiebres}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Gráfico semanal */}
         {userRole === 'dueno' && weekData.length > 0 && (
