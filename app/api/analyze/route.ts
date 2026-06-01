@@ -39,26 +39,42 @@ export async function POST(req: NextRequest) {
             content: [
               {
                 type: 'text',
-                text: `Eres un sistema experto en gestión de inventario retail. Analiza esta imagen de una estantería con precisión y objetividad.
+                text: `Eres un sistema experto en gestión de inventario retail. Analiza esta imagen de una estantería con máximo detalle y precisión.
 
 Responde SOLO con este JSON exacto, sin texto adicional:
 {
   "status": "vacio" o "con_producto",
   "confidence": número entre 0 y 1,
-  "nivel_llenado": número entre 0 y 100 que representa el porcentaje real de llenado,
-  "zonas_vacias": "descripción de zonas vacías visibles, o 'Ninguna' si el estante está lleno",
-  "productos_detectados": "descripción de los productos visibles: tipo, marca si es legible, color, categoría",
-  "recomendacion": "recomendación concreta solo si hay espacios vacíos reales. Si el estante está lleno escribe 'Sin recomendación, estante bien abastecido'",
+  "nivel_llenado": número entre 0 y 100,
+  "zonas_vacias": "descripción exacta de zonas vacías o 'Ninguna'",
+  "productos_detectados": "lista de productos visibles con marca, color y categoría",
+  "recomendacion": "recomendación específica según el estado del estante",
   "urgencia": "ninguna", "baja", "media" o "alta",
-  "description": "descripción objetiva y precisa del estado real del estante"
+  "description": "descripción objetiva del estado actual del estante"
 }
 
-Reglas estrictas:
-- Si el estante está visiblemente lleno (más del 80%), nivel_llenado debe ser mayor a 80, status "con_producto", urgencia "ninguna"
-- Solo indica zonas_vacias si hay espacios claramente vacíos y visibles
-- NO inventes problemas si el estante está bien abastecido
-- Si hay espacios vacíos claros, indica exactamente en qué zona están (superior/inferior/izquierda/derecha/centro)
-- La recomendacion solo aplica cuando hay espacios vacíos reales y visibles`},
+Reglas estrictas según el nivel de llenado:
+
+SI el estante está VACÍO o casi vacío (nivel_llenado menor a 30%):
+- status = "vacio", urgencia = "alta"
+- En recomendacion indica qué productos reponer basándote en los que aún quedan visibles o en el tipo de estante
+- Ejemplo: "Reponer snacks de maíz en zona central y bebidas en zona superior derecha"
+
+SI el estante está MEDIO lleno (nivel_llenado entre 30% y 79%):
+- status = "vacio", urgencia = "media" o "alta" según cuán vacío esté
+- En recomendacion indica exactamente qué productos faltan y en qué zona colocarlos
+- Ejemplo: "Zona superior izquierda sin productos. Reponer papas fritas sabor natural basándose en productos vecinos"
+
+SI el estante está LLENO (nivel_llenado 80% o más):
+- status = "con_producto", urgencia = "ninguna" o "baja"
+- Revisa si hay productos caídos, mal ordenados o girados incorrectamente
+- Si todo está en orden: recomendacion = "Estante bien abastecido y ordenado. Sin acción requerida"
+- Si hay desorden: recomendacion = "Ordenar productos en zona X, algunos están caídos o mal orientados"
+
+SIEMPRE:
+- Sé específico en zonas (superior/inferior/izquierda/derecha/centro)
+- Identifica marcas si son legibles en la imagen
+- No inventes problemas si el estante está en buen estado`},
               {
                 type: 'image_url',
                 image_url: {
