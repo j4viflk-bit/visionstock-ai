@@ -43,42 +43,52 @@ export default function NodoPage() {
       setStatus('Error al acceder a la camara')
     }
   }
-
   const captureAndSend = async () => {
-    if (!canvasRef.current || !videoRef.current || !cameraId) return
+  if (!canvasRef.current || !videoRef.current || !cameraId) return
 
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    canvas.width = 800
-    canvas.height = 600
-    ctx?.drawImage(videoRef.current, 0, 0, 800, 600)
+  const canvas = canvasRef.current
+  const ctx = canvas.getContext('2d')
+  canvas.width = 800
+  canvas.height = 600
+  ctx?.drawImage(videoRef.current, 0, 0, 800, 600)
 
-    const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
-    setStatus('Analizando imagen con IA...')
+  const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
+  setStatus('Analizando imagen con IA...')
 
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, cameraId })
-      })
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64, cameraId })
+    })
 
-      const data = await res.json()
+    const data = await res.json()
 
-      if (data.success) {
-        setLastStatus(data.result.status)
-        setLastResult(data.result.description)
-        setLastRecomendacion(data.result.recomendacion || '')
-        setNivelLlenado(data.result.nivel_llenado || 0)
-        setStatus(`Ultimo analisis: ${new Date().toLocaleTimeString('es-CL')}`)
+    if (data.success) {
+      if (data.descartado) {
+        setStatus('Imagen no valida — apunta a un estante')
+        setLastStatus('no_estante')
+        setLastResult('La imagen no corresponde a una estantería de tienda')
+        setLastRecomendacion('Apuntar la cámara hacia un estante de productos')
+        setNivelLlenado(0)
         setCaptureCount(prev => prev + 1)
-      } else {
-        setStatus('Error en el analisis')
+        return
       }
-    } catch {
-      setStatus('Error de conexion')
+      setLastStatus(data.result.status)
+      setLastResult(data.result.description)
+      setLastRecomendacion(data.result.recomendacion || '')
+      setNivelLlenado(data.result.nivel_llenado || 0)
+      setStatus(`Ultimo analisis: ${new Date().toLocaleTimeString('es-CL')}`)
+      setCaptureCount(prev => prev + 1)
+    } else {
+      setStatus('Error en el analisis')
     }
+  } catch {
+    setStatus('Error de conexion')
   }
+}
+
+ 
 
   const startMonitoring = async () => {
     if (!cameraId) {
@@ -210,9 +220,11 @@ export default function NodoPage() {
                 <p className="text-xs uppercase tracking-wide mb-2" style={{ color: lastStatus === 'vacio' ? '#f87171' : '#4ade80' }}>
                   Ultimo reporte IA
                 </p>
-                <p className="font-bold text-lg mb-2" style={{ color: lastStatus === 'vacio' ? '#f87171' : '#4ade80' }}>
-                  {lastStatus === 'vacio' ? 'STOCK FALTANTE' : 'STOCK OK'}
-                </p>
+                <p className="font-bold text-lg mb-2" style={{ 
+  color: lastStatus === 'vacio' ? '#f87171' : lastStatus === 'no_estante' ? '#facc15' : '#4ade80' 
+}}>
+  {lastStatus === 'vacio' ? 'STOCK FALTANTE' : lastStatus === 'no_estante' ? 'IMAGEN NO VALIDA' : 'STOCK OK'}
+</p>
 
                 {/* Nivel de llenado */}
                 <div className="mb-2">
