@@ -5,11 +5,28 @@ import { AIAnalyzer } from '@/lib/strategies/AIAnalyzer'
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageBase64, cameraId } = await req.json()
+    const body = await req.json()
+const { imageBase64, cameraId } = body
 
-    if (!imageBase64 || !cameraId) {
-      return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
-    }
+// Validación de datos de entrada
+if (!imageBase64 || typeof imageBase64 !== 'string') {
+  return NextResponse.json({ error: 'Imagen inválida o ausente' }, { status: 400 })
+}
+
+if (!cameraId || typeof cameraId !== 'string') {
+  return NextResponse.json({ error: 'ID de cámara inválido' }, { status: 400 })
+}
+
+// Validar que la imagen sea base64 válido
+if (imageBase64.length < 100) {
+  return NextResponse.json({ error: 'Imagen demasiado pequeña o corrupta' }, { status: 400 })
+}
+
+// Validar formato UUID del cameraId
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+if (!uuidRegex.test(cameraId)) {
+  return NextResponse.json({ error: 'ID de cámara no tiene formato válido' }, { status: 400 })
+}
 
     // 1. Subir imagen a Supabase Storage
     const fileName = `${cameraId}/${Date.now()}.jpg`
