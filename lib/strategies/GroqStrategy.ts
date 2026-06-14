@@ -46,7 +46,7 @@ export class GroqStrategy implements AIStrategy {
           content: [
             {
               type: 'text',
-              text: `Eres un sistema experto en gestión de inventario retail. Analiza esta imagen con máximo detalle y precisión.${contextoInventario}
+              text: `Eres un sistema experto en gestión de inventario retail. Analiza esta imagen de un estante con máximo detalle y precisión.${contextoInventario}
 
 Responde SOLO con este JSON exacto, sin texto adicional:
 {
@@ -70,18 +70,24 @@ SI la imagen NO muestra una estantería de tienda:
 
 SI el estante está VACÍO (nivel_llenado menor a 30%):
 - status = "vacio", urgencia = "alta"
-- En recomendacion menciona específicamente qué productos del inventario reponer
+- Observa el contexto del estante: ¿qué tipo de productos había antes? ¿qué categoría corresponde a este espacio?
+- En recomendacion indica máximo 3 productos del inventario disponible que mejor encajen en este espacio según su categoría y el contexto visual. Formato: "Reponer: [Producto A] (X unidades), [Producto B] (Y unidades)"
 
 SI el estante está MEDIO lleno (nivel_llenado entre 30% y 79%):
 - status = "vacio", urgencia = "media" o "alta"
-- En recomendacion indica qué productos del inventario faltan y dónde colocarlos
+- Observa qué productos ya están en el estante y qué espacios quedan vacíos
+- En recomendacion sugiere máximo 3 productos del inventario disponible que complementen lo que ya hay. Formato: "Completar estante con: [Producto A] en zona izquierda, [Producto B] en zona derecha"
 
 SI el estante está LLENO (nivel_llenado 80% o más):
 - status = "con_producto", urgencia = "ninguna" o "baja"
 - Si todo está en orden: recomendacion = "Sin recomendación, estante bien abastecido"
 - Si hay desorden: recomendacion = "Ordenar productos en zona X"
 
-SIEMPRE usa los productos del inventario disponible en tus recomendaciones cuando estén presentes.`
+CRITERIOS para elegir qué productos recomendar:
+1. Prioriza productos cuya categoría coincida con lo que se ve en el estante
+2. Prioriza productos con stock_actual alto (más disponibles en bodega)
+3. Nunca recomiendes productos con stock bajo o igual al mínimo
+4. Si no hay productos disponibles que encajen, indica "Sin productos disponibles en bodega para reponer este espacio"`
             },
             {
               type: 'image_url',
