@@ -134,49 +134,54 @@ export async function POST(req: NextRequest) {
     }
 
     // 7. Detectar anomalía comparando con análisis anterior
-    const anomaliaRes = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/anomalia`,
+try {
+  const anomaliaRes = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/anomalia`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cameraId,
+        nivelActual: result.nivel_llenado
+      })
+    }
+  )
+
+  const anomaliaData = await anomaliaRes.json()
+
+  if (anomaliaData.anomalia) {
+    await supabase.from('alerts').insert({
+      analysis_id: analysis.id,
+      camera_id: cameraId,
+      status: 'activa',
+      tipo: 'incidente_critico',
+      nivel_anterior: anomaliaData.nivelAnterior,
+      nivel_actual: anomaliaData.nivelActual,
+      caida: anomaliaData.caida
+    })
+
+    const { data: camera } = await supabase
+      .from('cameras')
+      .select('name, location')
+      .eq('id', cameraId)
+      .single()
+
+    await fetch(
+      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cameraId,
-          nivelActual: result.nivel_llenado
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: `ALERTA CRITICA - VisionStock AI\n\nPosible anomalia detectada en ${camera?.name}\nUbicacion: ${camera?.location}\nNivel anterior: ${anomaliaData.nivelAnterior}%\nNivel actual: ${anomaliaData.nivelActual}%\nCaida: ${anomaliaData.caida}% en un intervalo\nHora: ${new Date().toLocaleString('es-CL')}\n\nRevisar estante de inmediato.`,
         })
       }
     )
-
-    const anomaliaData = await anomaliaRes.json()
-
-    if (anomaliaData.anomalia) {
-      await supabase.from('alerts').insert({
-        analysis_id: analysis.id,
-        camera_id: cameraId,
-        status: 'activa',
-        tipo: 'incidente_critico',
-        nivel_anterior: anomaliaData.nivelAnterior,
-        nivel_actual: anomaliaData.nivelActual,
-        caida: anomaliaData.caida
-      })
-
-      const { data: camera } = await supabase
-        .from('cameras')
-        .select('name, location')
-        .eq('id', cameraId)
-        .single()
-
-      await fetch(
-        `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: process.env.TELEGRAM_CHAT_ID,
-            text: `ALERTA CRITICA - VisionStock AI\n\nPosible anomalia detectada en ${camera?.name}\nUbicacion: ${camera?.location}\nNivel anterior: ${anomaliaData.nivelAnterior}%\nNivel actual: ${anomaliaData.nivelActual}%\nCaida: ${anomaliaData.caida}% en un intervalo\nHora: ${new Date().toLocaleString('es-CL')}\n\nRevisar estante de inmediato.`,
-          })
-        }
-      )
-    }
+  }
+} catch (anomaliaError) {
+  console.error('Error en detección de anomalía:', anomaliaError)
+  // No interrumpir el flujo principal si falla la detección de anomalía
+}
 
     // 8. Actualizar última transmisión
     await supabase
