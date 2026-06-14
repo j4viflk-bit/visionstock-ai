@@ -98,19 +98,19 @@ export async function POST(req: NextRequest) {
         .single()
 
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cameraName: camera?.name || 'Cámara',
-            location: camera?.location || 'Sin ubicación',
-            time: new Date().toLocaleString('es-CL'),
-            imageBase64  // 👈 única modificación
-          })
-        })
-      } catch (notifyError) {
-        console.error('Error al enviar notificación:', notifyError)
-      }
+  await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      cameraName: camera?.name || 'Cámara',
+      location: camera?.location || 'Sin ubicación',
+      time: new Date().toLocaleString('es-CL'),
+      imageUrl: publicUrl  // 👈 URL pública de Supabase
+    })
+  })
+} catch (notifyError) {
+  console.error('Error al enviar notificación:', notifyError)
+}
 
       // Verificar productos con stock bajo y notificar
       if (productosEnStock && productosEnStock.length > 0) {
