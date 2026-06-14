@@ -1,4 +1,5 @@
 import { AIStrategy, AnalysisResult, ProductoStock } from './AIStrategy'
+
 export class GroqStrategy implements AIStrategy {
   private apiKey: string
   private model: string
@@ -13,27 +14,28 @@ export class GroqStrategy implements AIStrategy {
   }
 
   async analyze(imageBase64: string, productosEnStock?: ProductoStock[]): Promise<AnalysisResult> {
-    
-    // Construir contexto de inventario si hay productos
+
     let contextoInventario = ''
+
     if (productosEnStock && productosEnStock.length > 0) {
       const disponibles = productosEnStock.filter(p => p.stock_actual > p.stock_minimo)
       const bajoStock = productosEnStock.filter(p => p.stock_actual <= p.stock_minimo)
-      
+
       if (disponibles.length > 0) {
-  contextoInventario += `\n\nPRODUCTOS DISPONIBLES EN BODEGA (con stock suficiente):\n`
-  contextoInventario += disponibles.map(p => `- ${p.nombre} (${p.categoria}): ${p.stock_actual} ${p.unidad} disponibles`).join('\n')
-}
+        contextoInventario += `\n\nPRODUCTOS DISPONIBLES EN BODEGA (con stock suficiente):\n`
+        contextoInventario += disponibles.map(p => `- ${p.nombre} (${p.categoria}): ${p.stock_actual} ${p.unidad} disponibles`).join('\n')
+      }
 
-if (bajoStock.length > 0) {
-  contextoInventario += `\n\nPRODUCTOS CON STOCK BAJO (menos del mínimo):\n`
-  contextoInventario += bajoStock.map(p => `- ${p.nombre}: solo ${p.stock_actual} ${p.unidad} (mínimo: ${p.stock_minimo})`).join('\n')
-}
+      if (bajoStock.length > 0) {
+        contextoInventario += `\n\nPRODUCTOS CON STOCK BAJO (menos del mínimo):\n`
+        contextoInventario += bajoStock.map(p => `- ${p.nombre}: solo ${p.stock_actual} ${p.unidad} (mínimo: ${p.stock_minimo})`).join('\n')
+      }
 
-contextoInventario += `\n\n REGLA CRÍTICA: SOLO puedes recomendar productos que aparezcan EXACTAMENTE en la lista anterior.
+      contextoInventario += `\n\n⚠️ REGLA CRÍTICA: SOLO puedes recomendar productos que aparezcan EXACTAMENTE en la lista anterior.
 NO inventes productos. NO sugieras marcas que no estén en la lista.
 Si ningún producto de la lista encaja con el espacio vacío, responde: "Sin productos disponibles en bodega para reponer este espacio".
 Los nombres deben coincidir exactamente con los de la lista.`
+    } // 👈 aquí cerraba mal antes
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
