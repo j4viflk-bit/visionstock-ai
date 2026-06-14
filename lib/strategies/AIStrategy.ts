@@ -9,7 +9,15 @@ export interface AnalysisResult {
   description: string
 }
 
+export interface ProductoStock {
+  nombre: string
+  categoria: string
+  stock_actual: number
+  stock_minimo: number
+  unidad: string
+}
+
 export interface AIStrategy {
-  analyze(imageBase64: string): Promise<AnalysisResult>
+  analyze(imageBase64: string, productosEnStock?: ProductoStock[]): Promise<AnalysisResult>
   getName(): string
 }
