@@ -21,17 +21,19 @@ export class GroqStrategy implements AIStrategy {
       const bajoStock = productosEnStock.filter(p => p.stock_actual <= p.stock_minimo)
       
       if (disponibles.length > 0) {
-        contextoInventario += `\n\nPRODUCTOS DISPONIBLES EN BODEGA (con stock suficiente):\n`
-        contextoInventario += disponibles.map(p => `- ${p.nombre} (${p.categoria}): ${p.stock_actual} ${p.unidad} disponibles`).join('\n')
-      }
-      
-      if (bajoStock.length > 0) {
-        contextoInventario += `\n\nPRODUCTOS CON STOCK BAJO (menos del mínimo):\n`
-        contextoInventario += bajoStock.map(p => `- ${p.nombre}: solo ${p.stock_actual} ${p.unidad} (mínimo: ${p.stock_minimo})`).join('\n')
-      }
-      
-      contextoInventario += `\n\nIMPORTANTE: Tus recomendaciones deben priorizar productos disponibles en bodega. Si hay productos con stock bajo, mencionarlo como urgente.`
-    }
+  contextoInventario += `\n\nPRODUCTOS DISPONIBLES EN BODEGA (con stock suficiente):\n`
+  contextoInventario += disponibles.map(p => `- ${p.nombre} (${p.categoria}): ${p.stock_actual} ${p.unidad} disponibles`).join('\n')
+}
+
+if (bajoStock.length > 0) {
+  contextoInventario += `\n\nPRODUCTOS CON STOCK BAJO (menos del mínimo):\n`
+  contextoInventario += bajoStock.map(p => `- ${p.nombre}: solo ${p.stock_actual} ${p.unidad} (mínimo: ${p.stock_minimo})`).join('\n')
+}
+
+contextoInventario += `\n\n REGLA CRÍTICA: SOLO puedes recomendar productos que aparezcan EXACTAMENTE en la lista anterior.
+NO inventes productos. NO sugieras marcas que no estén en la lista.
+Si ningún producto de la lista encaja con el espacio vacío, responde: "Sin productos disponibles en bodega para reponer este espacio".
+Los nombres deben coincidir exactamente con los de la lista.`
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -87,7 +89,8 @@ CRITERIOS para elegir qué productos recomendar:
 1. Prioriza productos cuya categoría coincida con lo que se ve en el estante
 2. Prioriza productos con stock_actual alto (más disponibles en bodega)
 3. Nunca recomiendes productos con stock bajo o igual al mínimo
-4. Si no hay productos disponibles que encajen, indica "Sin productos disponibles en bodega para reponer este espacio"`
+4. Si no hay productos disponibles que encajen, indica "Sin productos disponibles en bodega para reponer este espacio"
+PROHIBIDO: Mencionar cualquier producto, marca o ítem que no esté en la lista de PRODUCTOS DISPONIBLES EN BODEGA entregada arriba. Si lo haces, el sistema fallará.`
             },
             {
               type: 'image_url',
