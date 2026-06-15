@@ -54,6 +54,10 @@ export async function POST(req: NextRequest) {
 
     // 4. Generar recomendación desde inventario real cuando está vacío
 if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
+  // 4. Generar recomendación desde inventario real cuando está vacío
+if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
+  console.log('Productos en stock:', JSON.stringify(productosEnStock))
+  console.log('Recomendacion original IA:', result.recomendacion)
   const disponibles = productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
   const bajoStock = productosEnStock.filter((p: any) => p.stock_actual <= p.stock_minimo)
 
