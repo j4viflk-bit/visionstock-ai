@@ -41,19 +41,19 @@ export async function POST(req: NextRequest) {
     const { data: { publicUrl } } = supabase.storage.from('capturas').getPublicUrl(fileName)
 
     // 2. Obtener productos en stock asociados a esta cámara
-    const { data: productosEnStock } = await supabase
-      .from('productos')
-      .select('nombre, categoria, stock_actual, stock_minimo, unidad')
-      .eq('camera_id', cameraId)
+const { data: productosEnStock, error: productosError } = await supabase
+  .from('productos')
+  .select('nombre, categoria, stock_actual, stock_minimo, unidad')
+  .eq('camera_id', cameraId)
 
+console.log('CameraId recibido:', cameraId)
+console.log('Productos encontrados:', JSON.stringify(productosEnStock))
+console.log('Error productos:', JSON.stringify(productosError))
     // 3. Analizar imagen usando el patrón Strategy con contexto de inventario
     const analyzer = new AIAnalyzer()
     const result = await analyzer.analyze(imageBase64, productosEnStock || [])
     console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
     console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
-
-    // 4. Generar recomendación desde inventario real cuando está vacío
-if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
   // 4. Generar recomendación desde inventario real cuando está vacío
 if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
   console.log('Productos en stock:', JSON.stringify(productosEnStock))
@@ -176,4 +176,4 @@ if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio'
     console.error('Error en analyze:', error)
     return NextResponse.json({ error: 'Error al procesar imagen' }, { status: 500 })
   }
-}
+  }
