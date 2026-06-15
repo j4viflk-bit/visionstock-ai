@@ -49,28 +49,46 @@ export async function POST(req: NextRequest) {
     // 3. Analizar imagen usando el patrón Strategy con contexto de inventario
     const analyzer = new AIAnalyzer()
     const result = await analyzer.analyze(imageBase64, productosEnStock || [])
-    // Filtrar recomendación para que solo mencione productos del inventario
-if (productosEnStock && productosEnStock.length > 0 && result.recomendacion) {
-  const nombresProductos = productosEnStock.map((p: any) => p.nombre)
-  const tieneProductoDelInventario = nombresProductos.some((nombre: string) =>
-    result.recomendacion.toLowerCase().includes(nombre.toLowerCase())
-  )
-
-  if (!tieneProductoDelInventario && result.status === 'vacio') {
-    const disponibles = productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
-    const bajoStock = productosEnStock.filter((p: any) => p.stock_actual <= p.stock_minimo)
-
-    if (disponibles.length > 0) {
-      result.recomendacion = `Reponer los siguientes productos disponibles en bodega: ${disponibles.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
-    } else if (bajoStock.length > 0) {
-      result.recomendacion = `Stock bajo en bodega. Productos que necesitan reabastecimiento urgente: ${bajoStock.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
-    }
-  }
-}
     console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
     console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
 
-    // 4. Si no es un estante válido, no guardar ni generar alerta
+    // 4. Generar recomendación inteligente basada en categoría detectada y productos del inventario
+    if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
+      const textoAnalisis = `${result.productos_detectados} ${result.description} ${result.zonas_vacias}`.toLowerCase()
+
+      // Buscar productos del inventario cuya categoría coincida con lo detectado
+      const productosRelevantes = productosEnStock.filter((p: any) => {
+        const categoria = p.categoria.toLowerCase()
+        const nombre = p.nombre.toLowerCase()
+        return textoAnalisis.includes(categoria) ||
+          textoAnalisis.includes(nombre.split(' ')[0]) ||
+          categoria.split(' ').some((palabra: string) => textoAnalisis.includes(palabra))
+      })
+
+      // Si encontró productos relevantes por categoría usar esos, si no usar todos los disponibles
+      const productosParaRecomendar = productosRelevantes.length > 0
+        ? productosRelevantes
+        : productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
+
+      if (productosParaRecomendar.length > 0) {
+        const disponibles = productosParaRecomendar.filter((p: any) => p.stock_actual > p.stock_minimo)
+        const bajoStock = productosParaRecomendar.filter((p: any) => p.stock_actual <= p.stock_minimo)
+
+        let recomendacion = ''
+
+        if (disponibles.length > 0) {
+          recomendacion += `Reponer en zona vacía: ${disponibles.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles en bodega)`).join(', ')}`
+        }
+
+        if (bajoStock.length > 0) {
+          recomendacion += `${disponibles.length > 0 ? '. ' : ''}Advertencia de stock bajo en bodega: ${bajoStock.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
+        }
+
+        if (recomendacion) result.recomendacion = recomendacion
+      }
+    }
+
+    // 5. Si no es un estante válido, no guardar ni generar alerta
     if (result.status === 'no_estante') {
       console.log('Imagen no corresponde a estantería, descartando análisis')
       return NextResponse.json({
@@ -81,7 +99,7 @@ if (productosEnStock && productosEnStock.length > 0 && result.recomendacion) {
       })
     }
 
-    // 5. Guardar análisis en Supabase
+    // 6. Guardar análisis en Supabase
     const { data: analysis, error: analysisError } = await supabase
       .from('analyses')
       .insert({
@@ -101,7 +119,7 @@ if (productosEnStock && productosEnStock.length > 0 && result.recomendacion) {
 
     if (analysisError) throw analysisError
 
-    // 6. Si está vacío, crear alerta y notificar
+    // 7. Si está vacío, crear alerta y notificar
     if (result.status === 'vacio') {
       await supabase.from('alerts').insert({
         analysis_id: analysis.id,
@@ -115,22 +133,22 @@ if (productosEnStock && productosEnStock.length > 0 && result.recomendacion) {
         .eq('id', cameraId)
         .single()
 
+      // Notificación principal
       try {
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      cameraName: camera?.name || 'Cámara',
-      location: camera?.location || 'Sin ubicación',
-      time: new Date().toLocaleString('es-CL'),
-      imageUrl: publicUrl  // 👈 URL pública de Supabase
-    })
-  })
-} catch (notifyError) {
-  console.error('Error al enviar notificación:', notifyError)
-}
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cameraName: camera?.name || 'Cámara',
+            location: camera?.location || 'Sin ubicación',
+            time: new Date().toLocaleString('es-CL')
+          })
+        })
+      } catch (notifyError) {
+        console.error('Error al enviar notificación:', notifyError)
+      }
 
-      // Verificar productos con stock bajo y notificar
+      // Notificación de stock bajo en bodega
       if (productosEnStock && productosEnStock.length > 0) {
         const productosBajos = productosEnStock.filter(
           (p: any) => p.stock_actual <= p.stock_minimo
@@ -141,22 +159,24 @@ if (productosEnStock && productosEnStock.length > 0 && result.recomendacion) {
             .map((p: any) => `${p.nombre}: ${p.stock_actual} ${p.unidad} (min: ${p.stock_minimo})`)
             .join('\n')
 
-          await fetch(
-            `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: process.env.TELEGRAM_CHAT_ID,
-                text: `ALERTA DE STOCK BAJO - VisionStock AI\n\nLos siguientes productos necesitan reposicion en bodega:\n\n${listaProductos}\n\nRevisa el inventario en: https://visionstock-ai.vercel.app/inventario`,
-              })
-            }
-          )
+          try {
+            await fetch(
+              `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: process.env.TELEGRAM_CHAT_ID,
+                  text: `ALERTA DE STOCK BAJO - VisionStock AI\n\nLos siguientes productos necesitan reposicion en bodega:\n\n${listaProductos}\n\nRevisa el inventario en: https://visionstock-ai.vercel.app/inventario`,
+                })
+              }
+            )
+          } catch (stockError) {
+            console.error('Error al enviar alerta de stock bajo:', stockError)
+          }
         }
       }
     }
-
-    
 
     // 8. Actualizar última transmisión
     await supabase
