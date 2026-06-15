@@ -8,25 +8,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { imageBase64, cameraId } = body
 
-    // Validación de datos de entrada
+    // Validaciones de entrada
     if (!imageBase64 || typeof imageBase64 !== 'string') {
       return NextResponse.json({ error: 'Imagen inválida o ausente' }, { status: 400 })
     }
-
     if (!cameraId || typeof cameraId !== 'string') {
       return NextResponse.json({ error: 'ID de cámara inválido' }, { status: 400 })
     }
 
-    if (imageBase64.length < 100) {
-      return NextResponse.json({ error: 'Imagen demasiado pequeña o corrupta' }, { status: 400 })
-    }
-
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(cameraId)) {
-      return NextResponse.json({ error: 'ID de cámara no tiene formato válido' }, { status: 400 })
-    }
-
-    // 1. Subir imagen a Supabase Storage
+    // 1. Subir imagen a Supabase Storage (se mantiene igual)
     const fileName = `${cameraId}/${Date.now()}.jpg`
     const { error: storageError } = await supabase
       .storage
@@ -37,46 +27,46 @@ export async function POST(req: NextRequest) {
       })
 
     if (storageError) throw storageError
-
     const { data: { publicUrl } } = supabase.storage.from('capturas').getPublicUrl(fileName)
 
-    // 2. Obtener productos en stock asociados a esta cámara
-const { data: productosEnStock, error: productosError } = await supabase
-  .from('productos')
-  .select('nombre, categoria, stock_actual, stock_minimo, unidad')
-  .eq('camera_id', cameraId)
+    // 2. OBTENER PRODUCTOS - Adaptado a tus columnas reales en español
+    const { data: productosEnStock, error: productosError } = await supabase
+      .from('productos')
+      .select('nombre, categorías, stock_actual, stock_minimo, unidad')
+      .eq('ID de la cámara', cameraId) // <-- Nombre exacto de tu Supabase
 
-console.log('CameraId recibido:', cameraId)
-console.log('Productos encontrados:', JSON.stringify(productosEnStock))
-console.log('Error productos:', JSON.stringify(productosError))
-    // 3. Analizar imagen usando el patrón Strategy con contexto de inventario
+    console.log('Productos de la BD:', JSON.stringify(productosEnStock))
+
+    // Mapeo rápido para que la IA no falle si busca "categoria" en singular
+    const productosMapeados = productosEnStock?.map((p: any) => ({
+      nombre: p.nombre,
+      categoria: p.categorías, // Pasa de plural a singular para tu patrón Strategy
+      stock_actual: p.stock_actual,
+      stock_minimo: p.stock_minimo,
+      unidad: p.unidad
+    })) || []
+
+    // 3. Analizar imagen usando el patrón Strategy
     const analyzer = new AIAnalyzer()
-    const result = await analyzer.analyze(imageBase64, productosEnStock || [])
-    console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
-    console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
-  // 4. Generar recomendación desde inventario real cuando está vacío
-if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
-  console.log('Productos en stock:', JSON.stringify(productosEnStock))
-  console.log('Recomendacion original IA:', result.recomendacion)
-  const disponibles = productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
-  const bajoStock = productosEnStock.filter((p: any) => p.stock_actual <= p.stock_minimo)
+    const result = await analyzer.analyze(imageBase64, productosMapeados)
 
-  let recomendacion = ''
+    // 4. Generar recomendación desde inventario real cuando está vacío
+    if (productosMapeados.length > 0 && result.status === 'vacio') {
+      const disponibles = productosMapeados.filter((p: any) => p.stock_actual > p.stock_minimo)
+      const bajoStock = productosMapeados.filter((p: any) => p.stock_actual <= p.stock_minimo)
 
-  if (disponibles.length > 0) {
-    recomendacion += `Reponer desde bodega: ${disponibles.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
-  }
+      let recomendacion = ''
+      if (disponibles.length > 0) {
+        recomendacion += `Reponer desde bodega: ${disponibles.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
+      }
+      if (bajoStock.length > 0) {
+        recomendacion += `${disponibles.length > 0 ? '. ' : ''}Stock bajo en bodega: ${bajoStock.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad}, mínimo: ${p.stock_minimo})`).join(', ')}`
+      }
+      if (recomendacion) result.recomendacion = recomendacion
+    }
 
-  if (bajoStock.length > 0) {
-    recomendacion += `${disponibles.length > 0 ? '. ' : ''}Stock bajo en bodega: ${bajoStock.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad}, mínimo: ${p.stock_minimo})`).join(', ')}`
-  }
-
-  if (recomendacion) result.recomendacion = recomendacion
-}
-
-    // 5. Si no es un estante válido, no guardar ni generar alerta
+    // 5. Si no es un estante válido, descartar
     if (result.status === 'no_estante') {
-      console.log('Imagen no corresponde a estantería, descartando análisis')
       return NextResponse.json({
         success: true,
         result,
@@ -85,90 +75,63 @@ if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio'
       })
     }
 
-    // 6. Guardar análisis en Supabase
+    // 6. GUARDAR ANÁLISIS - Adaptado a nombres en español con tildes
     const { data: analysis, error: analysisError } = await supabase
-      .from('analyses')
+      .from('análisis') // <-- Nombre de tu tabla real
       .insert({
-        camera_id: cameraId,
-        status: result.status,
-        confidence: result.confidence,
-        description: result.description,
-        image_url: publicUrl,
+        'ID de la cámara': cameraId,
+        estado: result.status,
+        confianza: result.confidence,
+        descripción: result.description,
+        'URL de la imagen': publicUrl,
         nivel_llenado: result.nivel_llenado,
-        zonas_vacias: result.zonas_vacias,
+        zonas_vacías: result.zonas_vacias,
         productos_detectados: result.productos_detectados,
-        recomendacion: result.recomendacion,
+        recomendación: result.recomendacion,
         urgencia: result.urgencia
       })
-      .select()
+      .select('"identificación"') // Selecciona la llave primaria real en español
       .single()
 
     if (analysisError) throw analysisError
 
-    // 7. Si está vacío, crear alerta y notificar
+    // 7. SI ESTÁ VACÍO - Crear alerta en tabla real
     if (result.status === 'vacio') {
-      await supabase.from('alerts').insert({
-        analysis_id: analysis.id,
-        camera_id: cameraId,
-        status: 'activa'
+      await supabase.from('alertas').insert({
+        'ID de análisis': analysis.identificación, // Relación exacta
+        'ID de la cámara': cameraId,
+        estado: 'activa'
       })
 
+      // Obtener datos de la cámara en la tabla real
       const { data: camera } = await supabase
-        .from('cameras')
-        .select('name, location')
-        .eq('id', cameraId)
+        .from('cámaras')
+        .select('nombre, "ubicación"')
+        .eq('identificación', cameraId)
         .single()
 
-      // Notificación principal
+      // Notificación principal a Telegram
       try {
         await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            cameraName: camera?.name || 'Cámara',
-            location: camera?.location || 'Sin ubicación',
-            time: new Date().toLocaleString('es-CL')
+            cameraName: camera?.nombre || 'Cámara',
+            location: camera?.ubicación || 'Sin ubicación',
+            time: new Date().toLocaleString('es-CL'),
+            imageUrl: publicUrl
           })
         })
       } catch (notifyError) {
         console.error('Error al enviar notificación:', notifyError)
       }
-
-      // Notificación de stock bajo en bodega
-      if (productosEnStock && productosEnStock.length > 0) {
-        const productosBajos = productosEnStock.filter(
-          (p: any) => p.stock_actual <= p.stock_minimo
-        )
-
-        if (productosBajos.length > 0) {
-          const listaProductos = productosBajos
-            .map((p: any) => `${p.nombre}: ${p.stock_actual} ${p.unidad} (min: ${p.stock_minimo})`)
-            .join('\n')
-
-          try {
-            await fetch(
-              `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  chat_id: process.env.TELEGRAM_CHAT_ID,
-                  text: `ALERTA DE STOCK BAJO - VisionStock AI\n\nLos siguientes productos necesitan reposicion en bodega:\n\n${listaProductos}\n\nRevisa el inventario en: https://visionstock-ai.vercel.app/inventario`,
-                })
-              }
-            )
-          } catch (stockError) {
-            console.error('Error al enviar alerta de stock bajo:', stockError)
-          }
-        }
-      }
     }
 
-    // 8. Actualizar última transmisión
+    // 8. Actualizar última transmisión en tabla real
     await supabase
-      .from('cameras')
-      .update({ last_transmission: new Date().toISOString() })
-      .eq('id', cameraId)
+      .from('cámaras')
+      .update({ última_transmisión: new Date().toISOString() })
+      .eq('identificación', cameraId)
 
     return NextResponse.json({ success: true, result })
 
@@ -176,4 +139,4 @@ if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio'
     console.error('Error en analyze:', error)
     return NextResponse.json({ error: 'Error al procesar imagen' }, { status: 500 })
   }
-  }
+}
