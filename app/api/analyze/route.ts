@@ -52,41 +52,23 @@ export async function POST(req: NextRequest) {
     console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
     console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
 
-    // 4. Generar recomendación inteligente basada en categoría detectada y productos del inventario
-    if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
-      const textoAnalisis = `${result.productos_detectados} ${result.description} ${result.zonas_vacias}`.toLowerCase()
+    // 4. Generar recomendación desde inventario real cuando está vacío
+if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
+  const disponibles = productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
+  const bajoStock = productosEnStock.filter((p: any) => p.stock_actual <= p.stock_minimo)
 
-      // Buscar productos del inventario cuya categoría coincida con lo detectado
-      const productosRelevantes = productosEnStock.filter((p: any) => {
-        const categoria = p.categoria.toLowerCase()
-        const nombre = p.nombre.toLowerCase()
-        return textoAnalisis.includes(categoria) ||
-          textoAnalisis.includes(nombre.split(' ')[0]) ||
-          categoria.split(' ').some((palabra: string) => textoAnalisis.includes(palabra))
-      })
+  let recomendacion = ''
 
-      // Si encontró productos relevantes por categoría usar esos, si no usar todos los disponibles
-      const productosParaRecomendar = productosRelevantes.length > 0
-        ? productosRelevantes
-        : productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
+  if (disponibles.length > 0) {
+    recomendacion += `Reponer desde bodega: ${disponibles.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
+  }
 
-      if (productosParaRecomendar.length > 0) {
-        const disponibles = productosParaRecomendar.filter((p: any) => p.stock_actual > p.stock_minimo)
-        const bajoStock = productosParaRecomendar.filter((p: any) => p.stock_actual <= p.stock_minimo)
+  if (bajoStock.length > 0) {
+    recomendacion += `${disponibles.length > 0 ? '. ' : ''}Stock bajo en bodega: ${bajoStock.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad}, mínimo: ${p.stock_minimo})`).join(', ')}`
+  }
 
-        let recomendacion = ''
-
-        if (disponibles.length > 0) {
-          recomendacion += `Reponer en zona vacía: ${disponibles.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles en bodega)`).join(', ')}`
-        }
-
-        if (bajoStock.length > 0) {
-          recomendacion += `${disponibles.length > 0 ? '. ' : ''}Advertencia de stock bajo en bodega: ${bajoStock.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
-        }
-
-        if (recomendacion) result.recomendacion = recomendacion
-      }
-    }
+  if (recomendacion) result.recomendacion = recomendacion
+}
 
     // 5. Si no es un estante válido, no guardar ni generar alerta
     if (result.status === 'no_estante') {
