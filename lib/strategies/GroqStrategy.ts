@@ -15,8 +15,8 @@ export class GroqStrategy implements AIStrategy {
 
   async analyze(imageBase64: string, productosEnStock?: ProductoStock[]): Promise<AnalysisResult> {
 
+    // Construir contexto de inventario si hay productos
     let contextoInventario = ''
-
     if (productosEnStock && productosEnStock.length > 0) {
       const disponibles = productosEnStock.filter(p => p.stock_actual > p.stock_minimo)
       const bajoStock = productosEnStock.filter(p => p.stock_actual <= p.stock_minimo)
@@ -27,15 +27,12 @@ export class GroqStrategy implements AIStrategy {
       }
 
       if (bajoStock.length > 0) {
-        contextoInventario += `\n\nPRODUCTOS CON STOCK BAJO (menos del mínimo):\n`
+        contextoInventario += `\n\nPRODUCTOS CON STOCK BAJO (menos del mínimo requerido):\n`
         contextoInventario += bajoStock.map(p => `- ${p.nombre}: solo ${p.stock_actual} ${p.unidad} (mínimo: ${p.stock_minimo})`).join('\n')
       }
 
-      contextoInventario += `\n\n⚠️ REGLA CRÍTICA: SOLO puedes recomendar productos que aparezcan EXACTAMENTE en la lista anterior.
-NO inventes productos. NO sugieras marcas que no estén en la lista.
-Si ningún producto de la lista encaja con el espacio vacío, responde: "Sin productos disponibles en bodega para reponer este espacio".
-Los nombres deben coincidir exactamente con los de la lista.`
-    } // 👈 aquí cerraba mal antes
+      contextoInventario += `\n\nREGLA OBLIGATORIA: Tu recomendacion DEBE mencionar ÚNICAMENTE productos de la lista de inventario proporcionada. NO inventes ni sugieras productos que no estén en esa lista. Si no hay productos disponibles con stock suficiente, indica que se debe reabastecer la bodega primero.`
+    }
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -50,7 +47,7 @@ Los nombres deben coincidir exactamente con los de la lista.`
           content: [
             {
               type: 'text',
-              text: `Eres un sistema experto en gestión de inventario retail. Analiza esta imagen de un estante con máximo detalle y precisión.${contextoInventario}
+              text: `Eres un sistema experto en gestión de inventario retail. Analiza esta imagen con máximo detalle y precisión.${contextoInventario}
 
 Responde SOLO con este JSON exacto, sin texto adicional:
 {
@@ -59,40 +56,33 @@ Responde SOLO con este JSON exacto, sin texto adicional:
   "nivel_llenado": número entre 0 y 100,
   "zonas_vacias": "descripción exacta de zonas vacías o 'Ninguna'",
   "productos_detectados": "lista de productos visibles con marca, color y categoría",
-  "recomendacion": "recomendación específica usando los productos disponibles en bodega",
+  "recomendacion": "recomendación SOLO con productos de la lista de inventario proporcionada. Ejemplo: Reponer [nombre exacto del producto del inventario] en zona [ubicación]",
   "urgencia": "ninguna", "baja", "media" o "alta",
   "description": "descripción objetiva del estado actual del estante"
 }
 
 Reglas estrictas:
 
-SI la imagen NO muestra una estantería de tienda:
+SI la imagen NO muestra una estantería de tienda (es una pared, persona, objeto random, exterior, etc.):
 - status = "no_estante", urgencia = "ninguna"
 - description = "La imagen no corresponde a una estantería de tienda"
 - recomendacion = "Apuntar la cámara hacia un estante de productos"
 - nivel_llenado = 0
 
-SI el estante está VACÍO (nivel_llenado menor a 30%):
+SI el estante está VACÍO o casi vacío (nivel_llenado menor a 30%):
 - status = "vacio", urgencia = "alta"
-- Observa el contexto del estante: ¿qué tipo de productos había antes? ¿qué categoría corresponde a este espacio?
-- En recomendacion indica máximo 3 productos del inventario disponible que mejor encajen en este espacio según su categoría y el contexto visual. Formato: "Reponer: [Producto A] (X unidades), [Producto B] (Y unidades)"
+- En recomendacion menciona específicamente qué productos del inventario reponer y en qué zona
 
 SI el estante está MEDIO lleno (nivel_llenado entre 30% y 79%):
 - status = "vacio", urgencia = "media" o "alta"
-- Observa qué productos ya están en el estante y qué espacios quedan vacíos
-- En recomendacion sugiere máximo 3 productos del inventario disponible que complementen lo que ya hay. Formato: "Completar estante con: [Producto A] en zona izquierda, [Producto B] en zona derecha"
+- En recomendacion indica qué productos del inventario faltan y dónde colocarlos
 
 SI el estante está LLENO (nivel_llenado 80% o más):
 - status = "con_producto", urgencia = "ninguna" o "baja"
 - Si todo está en orden: recomendacion = "Sin recomendación, estante bien abastecido"
 - Si hay desorden: recomendacion = "Ordenar productos en zona X"
 
-CRITERIOS para elegir qué productos recomendar:
-1. Prioriza productos cuya categoría coincida con lo que se ve en el estante
-2. Prioriza productos con stock_actual alto (más disponibles en bodega)
-3. Nunca recomiendes productos con stock bajo o igual al mínimo
-4. Si no hay productos disponibles que encajen, indica "Sin productos disponibles en bodega para reponer este espacio"
-PROHIBIDO: Mencionar cualquier producto, marca o ítem que no esté en la lista de PRODUCTOS DISPONIBLES EN BODEGA entregada arriba. Si lo haces, el sistema fallará.`
+SIEMPRE usa ÚNICAMENTE los productos del inventario disponible en tus recomendaciones cuando estén presentes. NO sugieras productos que no estén en la lista.`
             },
             {
               type: 'image_url',
@@ -107,6 +97,11 @@ PROHIBIDO: Mencionar cualquier producto, marca o ítem que no esté en la lista 
 
     const data = await response.json()
     const rawText = data.choices?.[0]?.message?.content || ''
+
+    if (!rawText || rawText.trim() === '') {
+      throw new Error('Groq devolvió respuesta vacía')
+    }
+
     const cleaned = rawText.replace(/```json|```/g, '').trim()
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
 
@@ -121,7 +116,7 @@ PROHIBIDO: Mencionar cualquier producto, marca o ítem que no esté en la lista 
       zonas_vacias: result.zonas_vacias ?? '',
       productos_detectados: result.productos_detectados ?? '',
       recomendacion: result.recomendacion ?? '',
-      urgencia: ['ninguna', 'baja', 'media', 'alta'].includes(result.urgencia) ? result.urgencia : 'baja',
+      urgencia: ['ninguna', 'baja', 'media', 'alta'].includes(result.urgencia) ? result.urgacion : 'baja',
       description: result.description ?? 'Análisis completado'
     }
   }
