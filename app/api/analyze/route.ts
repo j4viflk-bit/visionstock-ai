@@ -51,30 +51,60 @@ export async function POST(req: NextRequest) {
     console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
     console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
 
-    // 4. Si la IA no recomendó productos del inventario, forzar recomendación
+    // 4. Generar recomendación coherente por categoría
     if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
-      const nombresInventario = productosEnStock.map((p: any) => p.nombre.toLowerCase())
-      const recomendacionMencioaInventario = nombresInventario.some((nombre: string) =>
-        result.recomendacion.toLowerCase().includes(nombre.split(' ')[0])
-      )
+      const textoIA = `${result.productos_detectados} ${result.description} ${result.zonas_vacias}`.toLowerCase()
 
-      if (!recomendacionMencioaInventario) {
-        const disponibles = productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
-        const bajoStock = productosEnStock.filter((p: any) => p.stock_actual <= p.stock_minimo)
-        const prioritarios = [...bajoStock, ...disponibles].slice(0, 3)
-
-        let recomendacion = ''
-        const dispP = prioritarios.filter((p: any) => p.stock_actual > p.stock_minimo)
-        const bajoP = prioritarios.filter((p: any) => p.stock_actual <= p.stock_minimo)
-
-        if (dispP.length > 0) {
-          recomendacion += `Reponer desde bodega: ${dispP.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
-        }
-        if (bajoP.length > 0) {
-          recomendacion += `${dispP.length > 0 ? '. ' : ''}Urgente - stock bajo: ${bajoP.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
-        }
-        if (recomendacion) result.recomendacion = recomendacion
+      // Mapa de palabras clave por categoría
+      const keywordsPorCategoria: Record<string, string[]> = {
+        'snacks': ['snack', 'papa', 'papas', 'chips', 'galleta', 'maiz', 'frito', 'cracker', 'aperitivo', 'bocado', 'bolsa', 'paquete'],
+        'bebidas': ['bebida', 'agua', 'jugo', 'refresco', 'gaseosa', 'cola', 'botella', 'liquido', 'drink', 'lata'],
+        'lacteos': ['lacteo', 'yogur', 'yogurt', 'leche', 'queso', 'mantequilla', 'crema', 'dairy'],
+        'panaderia': ['pan', 'galleta', 'cereal', 'harina', 'pastel', 'torta'],
       }
+
+      // Buscar categoría más relevante según lo que ve la IA
+      let categoriaDetectada = ''
+      let maxCoincidencias = 0
+
+      for (const [categoria, keywords] of Object.entries(keywordsPorCategoria)) {
+        const coincidencias = keywords.filter(kw => textoIA.includes(kw)).length
+        if (coincidencias > maxCoincidencias) {
+          maxCoincidencias = coincidencias
+          categoriaDetectada = categoria
+        }
+      }
+
+      console.log('Categoría detectada:', categoriaDetectada)
+
+      // Filtrar productos por categoría detectada
+      const productosRelevantes = categoriaDetectada
+        ? productosEnStock.filter((p: any) =>
+            p.categoria.toLowerCase() === categoriaDetectada ||
+            p.categoria.toLowerCase().includes(categoriaDetectada)
+          )
+        : []
+
+      // Si no encontró por categoría, usar todos
+      const productosFinales = productosRelevantes.length > 0
+        ? productosRelevantes
+        : productosEnStock
+
+      const disponibles = productosFinales.filter((p: any) => p.stock_actual > p.stock_minimo)
+      const bajoStock = productosFinales.filter((p: any) => p.stock_actual <= p.stock_minimo)
+      const prioritarios = [...bajoStock, ...disponibles].slice(0, 3)
+
+      let recomendacion = ''
+      const dispP = prioritarios.filter((p: any) => p.stock_actual > p.stock_minimo)
+      const bajoP = prioritarios.filter((p: any) => p.stock_actual <= p.stock_minimo)
+
+      if (dispP.length > 0) {
+        recomendacion += `Reponer desde bodega: ${dispP.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
+      }
+      if (bajoP.length > 0) {
+        recomendacion += `${dispP.length > 0 ? '. ' : ''}Urgente - stock bajo: ${bajoP.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
+      }
+      if (recomendacion) result.recomendacion = recomendacion
     }
 
     // 5. Si no es un estante válido, no guardar ni generar alerta
@@ -155,7 +185,7 @@ export async function POST(req: NextRequest) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   chat_id: process.env.TELEGRAM_CHAT_ID,
-                  text: `ALERTA DE STOCK BAJO - VisionStock AI\n\nLos siguientes productos necesitan reposicion en bodega:\n\n${listaProductos}\n\nRevisa el inventario en: https://visionstock-ai.vercel.app/inventario`,
+                  text: `ALERTA DE STOCK BAJO - VisionStock AI\n\nLos siguientes productos necesitan reposicion en bodega:\n\nRevisa el inventario en: https://visionstock-ai.vercel.app/inventario`,
                 })
               }
             )
