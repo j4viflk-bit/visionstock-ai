@@ -29,11 +29,11 @@ export async function POST(req: NextRequest) {
     if (storageError) throw storageError
     const { data: { publicUrl } } = supabase.storage.from('capturas').getPublicUrl(fileName)
 
-    // 2. OBTENER PRODUCTOS - Adaptado a tus columnas reales en español
-    const { data: productosEnStock, error: productosError } = await supabase
-      .from('productos')
-      .select('nombre, categorías, stock_actual, stock_minimo, unidad')
-      .eq('ID de la cámara', cameraId) // <-- Nombre exacto de tu Supabase
+    // 2. Obtener productos en stock asociados a esta cámara
+const { data: productosEnStock } = await supabase
+  .from('productos')
+  .select('nombre, stock_actual, stock_minimo, unidad')
+  .eq('"ID de la cámara"', cameraId) // <-- NOTA LAS COMILLAS: '"ID de la cámara"'
 
     console.log('Productos de la BD:', JSON.stringify(productosEnStock))
 
