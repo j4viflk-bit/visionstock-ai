@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { cameraName, location, time, imageUrl } = await req.json()
+    const { cameraName, location, time, imageUrl, stockBajo } = await req.json()
 
-    const mensaje = `ALERTA DE STOCK - VisionStock AI\n\nCamara: ${cameraName}\nUbicacion: ${location}\nHora: ${time}\n\nVer dashboard: https://visionstock-ai.vercel.app/dashboard`
+    const mensaje = `ALERTA DE STOCK - VisionStock AI\n\nCamara: ${cameraName}\nUbicacion: ${location}\nHora: ${time}${stockBajo || ''}\n\nVer dashboard: https://visionstock-ai.vercel.app/dashboard`
 
-    // Si hay imagen, enviar con foto
     if (imageUrl) {
       const response = await fetch(
         `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`,
@@ -24,7 +23,6 @@ export async function POST(req: NextRequest) {
       const data = await response.json()
       if (!data.ok) {
         console.error('Error sendPhoto:', data.description)
-        // Si falla la foto, enviar solo texto
         await fetch(
           `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
           {
@@ -38,7 +36,6 @@ export async function POST(req: NextRequest) {
         )
       }
     } else {
-      // Sin imagen, enviar solo texto
       await fetch(
         `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
         {

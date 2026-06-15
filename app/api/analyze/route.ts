@@ -55,7 +55,6 @@ export async function POST(req: NextRequest) {
     if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
       const textoIA = `${result.productos_detectados} ${result.description} ${result.zonas_vacias}`.toLowerCase()
 
-      // Mapa de palabras clave por categoría
       const keywordsPorCategoria: Record<string, string[]> = {
         'snacks': ['snack', 'papa', 'papas', 'chips', 'galleta', 'maiz', 'frito', 'cracker', 'aperitivo', 'bocado', 'bolsa', 'paquete'],
         'bebidas': ['bebida', 'agua', 'jugo', 'refresco', 'gaseosa', 'cola', 'botella', 'liquido', 'drink', 'lata'],
@@ -63,7 +62,6 @@ export async function POST(req: NextRequest) {
         'panaderia': ['pan', 'galleta', 'cereal', 'harina', 'pastel', 'torta'],
       }
 
-      // Buscar categoría más relevante según lo que ve la IA
       let categoriaDetectada = ''
       let maxCoincidencias = 0
 
@@ -77,7 +75,6 @@ export async function POST(req: NextRequest) {
 
       console.log('Categoría detectada:', categoriaDetectada)
 
-      // Filtrar productos por categoría detectada
       const productosRelevantes = categoriaDetectada
         ? productosEnStock.filter((p: any) =>
             p.categoria.toLowerCase() === categoriaDetectada ||
@@ -85,7 +82,6 @@ export async function POST(req: NextRequest) {
           )
         : []
 
-      // Si no encontró por categoría, usar todos
       const productosFinales = productosRelevantes.length > 0
         ? productosRelevantes
         : productosEnStock
@@ -146,12 +142,27 @@ export async function POST(req: NextRequest) {
         status: 'activa'
       })
 
+      // Obtener datos de la cámara
       const { data: camera } = await supabase
         .from('cameras')
         .select('name, location')
         .eq('id', cameraId)
         .single()
 
+      // Construir lista de productos con stock bajo
+      let textoStockBajo = ''
+      if (productosEnStock && productosEnStock.length > 0) {
+        const productosBajos = productosEnStock.filter(
+          (p: any) => p.stock_actual <= p.stock_minimo
+        )
+        if (productosBajos.length > 0) {
+          textoStockBajo = `\n\nStock bajo en bodega:\n${productosBajos
+            .map((p: any) => `- ${p.nombre}: ${p.stock_actual} ${p.unidad} (min: ${p.stock_minimo})`)
+            .join('\n')}`
+        }
+      }
+
+      // Enviar una sola notificación con toda la info
       try {
         await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notify`, {
           method: 'POST',
@@ -159,40 +170,13 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             cameraName: camera?.name || 'Cámara',
             location: camera?.location || 'Sin ubicación',
-            time: new Date().toLocaleString('es-CL')
+            time: new Date().toLocaleString('es-CL'),
+            imageUrl: publicUrl,
+            stockBajo: textoStockBajo
           })
         })
       } catch (notifyError) {
         console.error('Error al enviar notificación:', notifyError)
-      }
-
-      // Notificación de stock bajo en bodega
-      if (productosEnStock && productosEnStock.length > 0) {
-        const productosBajos = productosEnStock.filter(
-          (p: any) => p.stock_actual <= p.stock_minimo
-        )
-
-        if (productosBajos.length > 0) {
-          const listaProductos = productosBajos
-            .map((p: any) => `${p.nombre}: ${p.stock_actual} ${p.unidad} (min: ${p.stock_minimo})`)
-            .join('\n')
-
-          try {
-            await fetch(
-              `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  chat_id: process.env.TELEGRAM_CHAT_ID,
-                  text: `ALERTA DE STOCK BAJO - VisionStock AI\n\nLos siguientes productos necesitan reposicion en bodega:\n\nRevisa el inventario en: https://visionstock-ai.vercel.app/inventario`,
-                })
-              }
-            )
-          } catch (stockError) {
-            console.error('Error al enviar alerta de stock bajo:', stockError)
-          }
-        }
       }
     }
 
