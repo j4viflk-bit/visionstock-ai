@@ -37,10 +37,10 @@ export async function POST(req: NextRequest) {
     const { data: { publicUrl } } = supabase.storage.from('capturas').getPublicUrl(fileName)
 
     // 2. Obtener productos en stock asociados a esta cámara
-const { data: productosEnStock } = await supabase
-  .from('productos')
-  .select('nombre, categoria, stock_actual, stock_minimo, unidad')
-  .eq('camera_id', cameraId)
+    const { data: productosEnStock } = await supabase
+      .from('productos')
+      .select('nombre, categoria, stock_actual, stock_minimo, unidad')
+      .eq('camera_id', cameraId)
 
     console.log('CameraId recibido:', cameraId)
     console.log('Productos encontrados:', JSON.stringify(productosEnStock))
@@ -51,19 +51,40 @@ const { data: productosEnStock } = await supabase
     console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
     console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
 
-    // 4. Generar recomendación desde inventario real cuando está vacío
+    // 4. Generar recomendación coherente por categoría desde inventario real
     if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
-      const disponibles = productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
-      const bajoStock = productosEnStock.filter((p: any) => p.stock_actual <= p.stock_minimo)
+
+      // Detectar categoría del estante desde lo que vio la IA
+      const textoIA = `${result.productos_detectados} ${result.description}`.toLowerCase()
+
+      // Buscar productos cuya categoría coincida con lo detectado por la IA
+      const productosRelevantes = productosEnStock.filter((p: any) => {
+        const categoria = p.categoria.toLowerCase()
+        return categoria.split(' ').some((palabra: string) =>
+          palabra.length > 3 && textoIA.includes(palabra)
+        )
+      })
+
+      // Si encontró productos de la misma categoría usar esos, si no usar todos
+      const productosFinales = productosRelevantes.length > 0
+        ? productosRelevantes
+        : productosEnStock
+
+      // Limitar a 3 productos más relevantes (primero los de stock bajo)
+      const disponibles = productosFinales.filter((p: any) => p.stock_actual > p.stock_minimo)
+      const bajoStock = productosFinales.filter((p: any) => p.stock_actual <= p.stock_minimo)
+      const prioritarios = [...bajoStock, ...disponibles].slice(0, 3)
 
       let recomendacion = ''
+      const dispPrioritarios = prioritarios.filter((p: any) => p.stock_actual > p.stock_minimo)
+      const bajoPrioritarios = prioritarios.filter((p: any) => p.stock_actual <= p.stock_minimo)
 
-      if (disponibles.length > 0) {
-        recomendacion += `Reponer desde bodega: ${disponibles.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
+      if (dispPrioritarios.length > 0) {
+        recomendacion += `Reponer desde bodega: ${dispPrioritarios.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
       }
 
-      if (bajoStock.length > 0) {
-        recomendacion += `${disponibles.length > 0 ? '. ' : ''}Stock bajo en bodega: ${bajoStock.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad}, mínimo: ${p.stock_minimo})`).join(', ')}`
+      if (bajoPrioritarios.length > 0) {
+        recomendacion += `${dispPrioritarios.length > 0 ? '. ' : ''}Urgente - stock bajo: ${bajoPrioritarios.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
       }
 
       if (recomendacion) result.recomendacion = recomendacion
