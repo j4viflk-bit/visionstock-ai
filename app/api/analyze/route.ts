@@ -49,6 +49,24 @@ export async function POST(req: NextRequest) {
     // 3. Analizar imagen usando el patrón Strategy con contexto de inventario
     const analyzer = new AIAnalyzer()
     const result = await analyzer.analyze(imageBase64, productosEnStock || [])
+    // Filtrar recomendación para que solo mencione productos del inventario
+if (productosEnStock && productosEnStock.length > 0 && result.recomendacion) {
+  const nombresProductos = productosEnStock.map((p: any) => p.nombre)
+  const tieneProductoDelInventario = nombresProductos.some((nombre: string) =>
+    result.recomendacion.toLowerCase().includes(nombre.toLowerCase())
+  )
+
+  if (!tieneProductoDelInventario && result.status === 'vacio') {
+    const disponibles = productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
+    const bajoStock = productosEnStock.filter((p: any) => p.stock_actual <= p.stock_minimo)
+
+    if (disponibles.length > 0) {
+      result.recomendacion = `Reponer los siguientes productos disponibles en bodega: ${disponibles.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
+    } else if (bajoStock.length > 0) {
+      result.recomendacion = `Stock bajo en bodega. Productos que necesitan reabastecimiento urgente: ${bajoStock.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
+    }
+  }
+}
     console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
     console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
 
