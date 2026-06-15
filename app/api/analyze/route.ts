@@ -51,43 +51,30 @@ export async function POST(req: NextRequest) {
     console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
     console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
 
-    // 4. Generar recomendación coherente por categoría desde inventario real
+    // 4. Si la IA no recomendó productos del inventario, forzar recomendación
     if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
+      const nombresInventario = productosEnStock.map((p: any) => p.nombre.toLowerCase())
+      const recomendacionMencioaInventario = nombresInventario.some((nombre: string) =>
+        result.recomendacion.toLowerCase().includes(nombre.split(' ')[0])
+      )
 
-      // Detectar categoría del estante desde lo que vio la IA
-      const textoIA = `${result.productos_detectados} ${result.description}`.toLowerCase()
+      if (!recomendacionMencioaInventario) {
+        const disponibles = productosEnStock.filter((p: any) => p.stock_actual > p.stock_minimo)
+        const bajoStock = productosEnStock.filter((p: any) => p.stock_actual <= p.stock_minimo)
+        const prioritarios = [...bajoStock, ...disponibles].slice(0, 3)
 
-      // Buscar productos cuya categoría coincida con lo detectado por la IA
-      const productosRelevantes = productosEnStock.filter((p: any) => {
-        const categoria = p.categoria.toLowerCase()
-        return categoria.split(' ').some((palabra: string) =>
-          palabra.length > 3 && textoIA.includes(palabra)
-        )
-      })
+        let recomendacion = ''
+        const dispP = prioritarios.filter((p: any) => p.stock_actual > p.stock_minimo)
+        const bajoP = prioritarios.filter((p: any) => p.stock_actual <= p.stock_minimo)
 
-      // Si encontró productos de la misma categoría usar esos, si no usar todos
-      const productosFinales = productosRelevantes.length > 0
-        ? productosRelevantes
-        : productosEnStock
-
-      // Limitar a 3 productos más relevantes (primero los de stock bajo)
-      const disponibles = productosFinales.filter((p: any) => p.stock_actual > p.stock_minimo)
-      const bajoStock = productosFinales.filter((p: any) => p.stock_actual <= p.stock_minimo)
-      const prioritarios = [...bajoStock, ...disponibles].slice(0, 3)
-
-      let recomendacion = ''
-      const dispPrioritarios = prioritarios.filter((p: any) => p.stock_actual > p.stock_minimo)
-      const bajoPrioritarios = prioritarios.filter((p: any) => p.stock_actual <= p.stock_minimo)
-
-      if (dispPrioritarios.length > 0) {
-        recomendacion += `Reponer desde bodega: ${dispPrioritarios.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
+        if (dispP.length > 0) {
+          recomendacion += `Reponer desde bodega: ${dispP.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
+        }
+        if (bajoP.length > 0) {
+          recomendacion += `${dispP.length > 0 ? '. ' : ''}Urgente - stock bajo: ${bajoP.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
+        }
+        if (recomendacion) result.recomendacion = recomendacion
       }
-
-      if (bajoPrioritarios.length > 0) {
-        recomendacion += `${dispPrioritarios.length > 0 ? '. ' : ''}Urgente - stock bajo: ${bajoPrioritarios.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
-      }
-
-      if (recomendacion) result.recomendacion = recomendacion
     }
 
     // 5. Si no es un estante válido, no guardar ni generar alerta

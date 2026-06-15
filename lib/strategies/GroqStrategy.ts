@@ -15,23 +15,13 @@ export class GroqStrategy implements AIStrategy {
 
   async analyze(imageBase64: string, productosEnStock?: ProductoStock[]): Promise<AnalysisResult> {
 
-    // Construir contexto de inventario si hay productos
+    // Construir contexto de inventario
     let contextoInventario = ''
     if (productosEnStock && productosEnStock.length > 0) {
-      const disponibles = productosEnStock.filter(p => p.stock_actual > p.stock_minimo)
-      const bajoStock = productosEnStock.filter(p => p.stock_actual <= p.stock_minimo)
+      contextoInventario = `\n\nINVENTARIO DISPONIBLE EN BODEGA:
+${productosEnStock.map((p: any) => `- ${p.nombre} (categoría: ${p.categoria}, stock: ${p.stock_actual} ${p.unidad}, mínimo: ${p.stock_minimo} ${p.unidad})`).join('\n')}
 
-      if (disponibles.length > 0) {
-        contextoInventario += `\n\nPRODUCTOS DISPONIBLES EN BODEGA (con stock suficiente):\n`
-        contextoInventario += disponibles.map(p => `- ${p.nombre} (${p.categoria}): ${p.stock_actual} ${p.unidad} disponibles`).join('\n')
-      }
-
-      if (bajoStock.length > 0) {
-        contextoInventario += `\n\nPRODUCTOS CON STOCK BAJO (menos del mínimo requerido):\n`
-        contextoInventario += bajoStock.map(p => `- ${p.nombre}: solo ${p.stock_actual} ${p.unidad} (mínimo: ${p.stock_minimo})`).join('\n')
-      }
-
-      contextoInventario += `\n\nREGLA OBLIGATORIA: Tu recomendacion DEBE mencionar ÚNICAMENTE productos de la lista de inventario proporcionada. NO inventes ni sugieras productos que no estén en esa lista. Si no hay productos disponibles con stock suficiente, indica que se debe reabastecer la bodega primero.`
+INSTRUCCIÓN OBLIGATORIA: Cuando el estante esté vacío o con poco stock, tu campo "recomendacion" DEBE sugerir ÚNICAMENTE productos de la lista anterior que tengan coherencia visual con lo que ves en el estante. Por ejemplo, si ves snacks o papas fritas, recomienda productos de snacks del inventario. Si ves bebidas, recomienda bebidas del inventario. NO recomiendes productos de categorías distintas a lo que ves. Usa los nombres EXACTOS del inventario.`
     }
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -56,33 +46,30 @@ Responde SOLO con este JSON exacto, sin texto adicional:
   "nivel_llenado": número entre 0 y 100,
   "zonas_vacias": "descripción exacta de zonas vacías o 'Ninguna'",
   "productos_detectados": "lista de productos visibles con marca, color y categoría",
-  "recomendacion": "recomendación SOLO con productos de la lista de inventario proporcionada. Ejemplo: Reponer [nombre exacto del producto del inventario] en zona [ubicación]",
+  "recomendacion": "recomendación SOLO con productos del inventario que sean coherentes con lo que ves",
   "urgencia": "ninguna", "baja", "media" o "alta",
   "description": "descripción objetiva del estado actual del estante"
 }
 
 Reglas estrictas:
 
-SI la imagen NO muestra una estantería de tienda (es una pared, persona, objeto random, exterior, etc.):
+SI la imagen NO muestra una estantería de tienda:
 - status = "no_estante", urgencia = "ninguna"
 - description = "La imagen no corresponde a una estantería de tienda"
 - recomendacion = "Apuntar la cámara hacia un estante de productos"
 - nivel_llenado = 0
 
-SI el estante está VACÍO o casi vacío (nivel_llenado menor a 30%):
+SI el estante está VACÍO (nivel_llenado menor a 30%):
 - status = "vacio", urgencia = "alta"
-- En recomendacion menciona específicamente qué productos del inventario reponer y en qué zona
+- recomendacion: usa SOLO productos del inventario que sean coherentes con lo que ves
 
 SI el estante está MEDIO lleno (nivel_llenado entre 30% y 79%):
 - status = "vacio", urgencia = "media" o "alta"
-- En recomendacion indica qué productos del inventario faltan y dónde colocarlos
+- recomendacion: indica qué productos del inventario faltan y dónde
 
 SI el estante está LLENO (nivel_llenado 80% o más):
 - status = "con_producto", urgencia = "ninguna" o "baja"
-- Si todo está en orden: recomendacion = "Sin recomendación, estante bien abastecido"
-- Si hay desorden: recomendacion = "Ordenar productos en zona X"
-
-SIEMPRE usa ÚNICAMENTE los productos del inventario disponible en tus recomendaciones cuando estén presentes. NO sugieras productos que no estén en la lista.`
+- recomendacion = "Sin recomendación, estante bien abastecido" o indicar desorden si lo hay`
             },
             {
               type: 'image_url',
@@ -116,7 +103,7 @@ SIEMPRE usa ÚNICAMENTE los productos del inventario disponible en tus recomenda
       zonas_vacias: result.zonas_vacias ?? '',
       productos_detectados: result.productos_detectados ?? '',
       recomendacion: result.recomendacion ?? '',
-      urgencia: ['ninguna', 'baja', 'media', 'alta'].includes(result.urgencia) ? result.urgacion : 'baja',
+      urgencia: ['ninguna', 'baja', 'media', 'alta'].includes(result.urgencia) ? result.urgencia : 'baja',
       description: result.description ?? 'Análisis completado'
     }
   }
