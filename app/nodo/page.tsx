@@ -21,10 +21,7 @@ export default function NodoPage() {
 
   useEffect(() => {
     const loadCameras = async () => {
-      const { data } = await supabase
-        .from('cameras')
-        .select('*')
-        .eq('is_active', true)
+      const { data } = await supabase.from('cameras').select('*').eq('is_active', true)
       setCameras(data || [])
     }
     loadCameras()
@@ -32,73 +29,58 @@ export default function NodoPage() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: { ideal: 'environment' } } 
-      })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
-      setStatus('Camara activa')
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
+      if (videoRef.current) videoRef.current.srcObject = stream
+      setStatus('Cámara activa')
     } catch {
-      setStatus('Error al acceder a la camara')
+      setStatus('Error al acceder a la cámara')
     }
   }
+
   const captureAndSend = async () => {
-  if (!canvasRef.current || !videoRef.current || !cameraId) return
-
-  const canvas = canvasRef.current
-  const ctx = canvas.getContext('2d')
-  canvas.width = 800
-  canvas.height = 600
-  ctx?.drawImage(videoRef.current, 0, 0, 800, 600)
-
-  const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
-  setStatus('Analizando imagen con IA...')
-
-  try {
-    const res = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: base64, cameraId })
-    })
-
-    const data = await res.json()
-
-    if (data.success) {
-      if (data.descartado) {
-        setStatus('Imagen no valida — apunta a un estante')
-        setLastStatus('no_estante')
-        setLastResult('La imagen no corresponde a una estantería de tienda')
-        setLastRecomendacion('Apuntar la cámara hacia un estante de productos')
-        setNivelLlenado(0)
+    if (!canvasRef.current || !videoRef.current || !cameraId) return
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    canvas.width = 800; canvas.height = 600
+    ctx?.drawImage(videoRef.current, 0, 0, 800, 600)
+    const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
+    setStatus('Analizando imagen con IA...')
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, cameraId })
+      })
+      const data = await res.json()
+      if (data.success) {
+        if (data.descartado) {
+          setStatus('Imagen no válida — apunta a un estante')
+          setLastStatus('no_estante')
+          setLastResult('La imagen no corresponde a una estantería de tienda')
+          setLastRecomendacion('Apuntar la cámara hacia un estante de productos')
+          setNivelLlenado(0)
+          setCaptureCount(prev => prev + 1)
+          return
+        }
+        setLastStatus(data.result.status)
+        setLastResult(data.result.description)
+        setLastRecomendacion(data.result.recomendacion || '')
+        setNivelLlenado(data.result.nivel_llenado || 0)
+        setStatus(`Último análisis: ${new Date().toLocaleTimeString('es-CL')}`)
         setCaptureCount(prev => prev + 1)
-        return
+      } else {
+        setStatus('Error en el análisis')
       }
-      setLastStatus(data.result.status)
-      setLastResult(data.result.description)
-      setLastRecomendacion(data.result.recomendacion || '')
-      setNivelLlenado(data.result.nivel_llenado || 0)
-      setStatus(`Ultimo analisis: ${new Date().toLocaleTimeString('es-CL')}`)
-      setCaptureCount(prev => prev + 1)
-    } else {
-      setStatus('Error en el analisis')
+    } catch {
+      setStatus('Error de conexión')
     }
-  } catch {
-    setStatus('Error de conexion')
   }
-}
-
- 
 
   const startMonitoring = async () => {
-    if (!cameraId) {
-      setStatus('Selecciona una camara primero')
-      return
-    }
+    if (!cameraId) { setStatus('Selecciona una cámara primero'); return }
     await startCamera()
     setActive(true)
     setStatus('Monitoreo activo — primera captura en 5 segundos...')
-
     setTimeout(async () => {
       await captureAndSend()
       intervalRef.current = setInterval(captureAndSend, 5 * 60 * 1000)
@@ -109,173 +91,219 @@ export default function NodoPage() {
     setActive(false)
     clearInterval(intervalRef.current)
     if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
-      tracks.forEach(t => t.stop())
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop())
     }
     setStatus('Monitoreo detenido')
-    setLastResult('')
-    setLastStatus('')
-    setLastRecomendacion('')
-    setNivelLlenado(0)
+    setLastResult(''); setLastStatus(''); setLastRecomendacion(''); setNivelLlenado(0)
   }
 
+  const statusColor = lastStatus === 'vacio' ? '#EF4444' : lastStatus === 'no_estante' ? '#F59E0B' : '#22C55E'
+  const statusBg = lastStatus === 'vacio' ? '#FEF2F2' : lastStatus === 'no_estante' ? '#FFFBEB' : '#F0FDF4'
+  const statusBorder = lastStatus === 'vacio' ? '#FECACA' : lastStatus === 'no_estante' ? '#FDE68A' : '#BBF7D0'
+  const statusLabel = lastStatus === 'vacio' ? 'STOCK FALTANTE' : lastStatus === 'no_estante' ? 'IMAGEN NO VÁLIDA' : 'STOCK OK'
+
   return (
-    <main className="min-h-screen text-white" style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a00 50%, #0a0a0a 100%)' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif", background: '#F4F4F5' }}>
 
-      {/* Navbar */}
-      <nav className="border-b sticky top-0 z-50 backdrop-blur-sm" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.4)' }}>
-        <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl p-2" style={{ background: 'linear-gradient(135deg, #ea580c, #dc2626)' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+      {/* SIDEBAR */}
+      <aside style={{ width: 240, background: '#1C1C1E', display: 'flex', flexDirection: 'column', height: '100vh', flexShrink: 0 }}>
+        <div style={{ padding: '24px 20px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 34, height: 34, background: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg style={{ width: 18, height: 18, color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>VisionStock AI</div>
+            <div style={{ color: '#52525B', fontSize: 10 }}>AI Monitoring</div>
+          </div>
+        </div>
+
+        <nav style={{ flex: 1, padding: '4px 12px' }}>
+          <div style={{ fontSize: 9, color: '#3F3F46', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '12px 8px 6px', fontWeight: 600 }}>Menú</div>
+          {[
+            { label: 'Dashboard', path: '/dashboard', active: false, d: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+            { label: 'Nodo', path: '/nodo', active: true, d: 'M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z' },
+            { label: 'Historial', path: '/historial', active: false, d: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+            { label: 'Inventario', path: '/inventario', active: false, d: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+          ].map(item => (
+            <div key={item.label} onClick={() => router.push(item.path)} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8,
+              cursor: 'pointer', marginBottom: 2, fontSize: 13,
+              background: item.active ? '#27272A' : 'transparent',
+              color: item.active ? '#fff' : '#71717A',
+              borderLeft: item.active ? '2px solid #0EA5E9' : '2px solid transparent'
+            }}>
+              <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.d} />
               </svg>
+              {item.label}
             </div>
-            <div>
-              <p className="font-bold text-sm">Nodo de Captura</p>
-              <p className="text-gray-500 text-xs">VisionStock AI</p>
-            </div>
-          </div>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="px-4 py-2 rounded-xl text-sm transition text-gray-300 hover:text-white"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            Dashboard
-          </button>
+          ))}
+        </nav>
+
+        <div style={{ padding: '16px 20px', borderTop: '1px solid #27272A' }}>
+          <div style={{ fontSize: 11, color: '#52525B' }}>Nodo de Captura IoT</div>
         </div>
-      </nav>
+      </aside>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      {/* MAIN */}
+      <main style={{ flex: 1, overflowY: 'auto' }}>
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-1">Nodo de Captura</h1>
-          <p className="text-gray-500">Este dispositivo actua como camara de monitoreo de inventario</p>
+        {/* Topbar */}
+        <div style={{ background: '#fff', borderBottom: '1px solid #E4E4E7', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: '#09090B', letterSpacing: '-0.02em' }}>Nodo de Captura</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {active && <><div style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', animation: 'blink 1s infinite' }} /><span style={{ fontSize: 12, color: '#EF4444', fontWeight: 500 }}>En vivo</span></>}
+            {!active && <><div style={{ width: 7, height: 7, borderRadius: '50%', background: '#A1A1AA' }} /><span style={{ fontSize: 12, color: '#A1A1AA' }}>Inactivo</span></>}
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Video */}
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="p-4 border-b flex items-center gap-2" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-              {active && <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#dc2626' }} />}
-              {active && <span className="text-xs font-semibold" style={{ color: '#f87171' }}>EN VIVO</span>}
-              {!active && <span className="text-xs text-gray-500">Sin señal</span>}
-            </div>
-            <div className="relative">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full"
-                style={{ maxHeight: '280px', background: '#000', display: 'block' }}
-              />
-              <canvas ref={canvasRef} className="hidden" />
-              {!active && (
-                <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
-                  <p className="text-gray-500 text-sm">Camara inactiva</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
 
-          {/* Panel derecho */}
-          <div className="flex flex-col gap-4">
-
-            {/* Selector cámara */}
-            <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Camara autorizada</p>
-              <select
-                value={cameraId}
-                onChange={(e) => setCameraId(e.target.value)}
-                disabled={active}
-                className="w-full text-white px-4 py-3 rounded-xl outline-none transition text-sm"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', opacity: active ? 0.5 : 1 }}
-              >
-                <option value="">-- Seleccionar --</option>
-                {cameras.map((cam) => (
-                  <option key={cam.id} value={cam.id}>
-                    {cam.name} ({cam.location})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Estado */}
-            <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Estado operativo</p>
-              <p className="text-sm font-semibold" style={{ color: active ? '#fb923c' : '#6b7280' }}>{status}</p>
-              {captureCount > 0 && (
-                <p className="text-xs text-gray-600 mt-1">Capturas realizadas: {captureCount}</p>
-              )}
-            </div>
-
-            {/* Resultado IA */}
-            {lastResult && (
-              <div className="rounded-2xl p-5" style={{
-                background: lastStatus === 'vacio' ? 'rgba(220,38,38,0.1)' : 'rgba(34,197,94,0.1)',
-                border: `1px solid ${lastStatus === 'vacio' ? 'rgba(220,38,38,0.3)' : 'rgba(34,197,94,0.3)'}`
-              }}>
-                <p className="text-xs uppercase tracking-wide mb-2" style={{ color: lastStatus === 'vacio' ? '#f87171' : '#4ade80' }}>
-                  Ultimo reporte IA
-                </p>
-                <p className="font-bold text-lg mb-2" style={{ 
-  color: lastStatus === 'vacio' ? '#f87171' : lastStatus === 'no_estante' ? '#facc15' : '#4ade80' 
-}}>
-  {lastStatus === 'vacio' ? 'STOCK FALTANTE' : lastStatus === 'no_estante' ? 'IMAGEN NO VALIDA' : 'STOCK OK'}
-</p>
-
-                {/* Nivel de llenado */}
-                <div className="mb-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <p className="text-xs text-gray-500">Nivel de llenado</p>
-                    <p className="text-xs font-bold" style={{ color: nivelLlenado < 30 ? '#f87171' : '#fb923c' }}>
-                      {nivelLlenado}%
-                    </p>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                    <div className="h-1.5 rounded-full transition-all" style={{
-                      width: `${nivelLlenado}%`,
-                      background: nivelLlenado < 30 ? '#dc2626' : nivelLlenado < 60 ? '#ea580c' : '#16a34a'
-                    }} />
-                  </div>
-                </div>
-
-                <p className="text-gray-400 text-xs mb-2">{lastResult}</p>
-
-                {lastRecomendacion && lastRecomendacion !== 'Sin recomendación, estante bien abastecido' && (
-                  <div className="mt-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(234,88,12,0.15)', border: '1px solid rgba(234,88,12,0.2)' }}>
-                    <p className="text-xs font-semibold mb-1" style={{ color: '#fb923c' }}>Recomendacion</p>
-                    <p className="text-xs text-gray-400">{lastRecomendacion}</p>
+            {/* Video */}
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #F4F4F5', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {active
+                  ? <><div style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', animation: 'blink 1s infinite' }} /><span style={{ fontSize: 12, fontWeight: 600, color: '#EF4444' }}>EN VIVO</span></>
+                  : <><div style={{ width: 7, height: 7, borderRadius: '50%', background: '#D4D4D8' }} /><span style={{ fontSize: 12, color: '#A1A1AA' }}>Sin señal</span></>
+                }
+              </div>
+              <div style={{ position: 'relative', background: '#09090B' }}>
+                <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: 300, objectFit: 'cover', display: 'block' }} />
+                <canvas ref={canvasRef} style={{ display: 'none' }} />
+                {!active && (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                    <div style={{ width: 48, height: 48, background: 'rgba(255,255,255,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg style={{ width: 24, height: 24, color: '#52525B' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                      </svg>
+                    </div>
+                    <p style={{ fontSize: 12, color: '#52525B' }}>Cámara inactiva</p>
                   </div>
                 )}
               </div>
-            )}
-
-            {/* Botones */}
-            <div className="flex gap-3">
-              <button
-                onClick={startMonitoring}
-                disabled={active}
-                className="flex-1 text-white font-bold py-3 rounded-xl transition-all transform active:scale-95"
-                style={{ background: active ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ea580c, #dc2626)', opacity: active ? 0.5 : 1, border: '1px solid rgba(255,255,255,0.08)' }}
-              >
-                Iniciar
-              </button>
-              <button
-                onClick={stopMonitoring}
-                disabled={!active}
-                className="flex-1 font-bold py-3 rounded-xl transition-all transform active:scale-95"
-                style={{ background: !active ? 'rgba(255,255,255,0.05)' : 'rgba(220,38,38,0.2)', color: !active ? '#4b5563' : '#f87171', border: `1px solid ${!active ? 'rgba(255,255,255,0.08)' : 'rgba(220,38,38,0.3)'}`, opacity: !active ? 0.5 : 1 }}
-              >
-                Detener
-              </button>
             </div>
 
+            {/* Panel control */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              {/* Selector cámara */}
+              <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Cámara autorizada</div>
+                <select
+                  value={cameraId}
+                  onChange={e => setCameraId(e.target.value)}
+                  disabled={active}
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: 10, fontSize: 13,
+                    border: '1px solid #E4E4E7', background: active ? '#F4F4F5' : '#FAFAFA',
+                    color: '#09090B', outline: 'none', cursor: active ? 'not-allowed' : 'pointer',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="">— Seleccionar cámara —</option>
+                  {cameras.map(cam => (
+                    <option key={cam.id} value={cam.id}>{cam.name} ({cam.location})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Estado */}
+              <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Estado operativo</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: active ? '#0EA5E9' : '#A1A1AA' }}>{status}</div>
+                {captureCount > 0 && (
+                  <div style={{ fontSize: 11, color: '#A1A1AA', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg style={{ width: 12, height: 12 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    </svg>
+                    {captureCount} capturas realizadas
+                  </div>
+                )}
+              </div>
+
+              {/* Botones */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <button
+                  onClick={startMonitoring}
+                  disabled={active}
+                  style={{
+                    padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                    border: 'none', cursor: active ? 'not-allowed' : 'pointer',
+                    background: active ? '#E4E4E7' : '#0EA5E9', color: active ? '#A1A1AA' : '#fff',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Iniciar
+                </button>
+                <button
+                  onClick={stopMonitoring}
+                  disabled={!active}
+                  style={{
+                    padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                    border: '1px solid', cursor: !active ? 'not-allowed' : 'pointer',
+                    background: !active ? '#F4F4F5' : '#FEF2F2',
+                    color: !active ? '#A1A1AA' : '#EF4444',
+                    borderColor: !active ? '#E4E4E7' : '#FECACA',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Detener
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Resultado IA */}
+          {lastResult && (
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Último reporte IA</h2>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, background: statusBg, color: statusColor, border: `1px solid ${statusBorder}` }}>
+                  {statusLabel}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+
+                {/* Nivel de llenado */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: '#52525B', marginBottom: 8 }}>Nivel de llenado</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                    <div style={{ flex: 1, height: 8, background: '#F4F4F5', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{
+                        height: 8, borderRadius: 4, transition: 'width 0.5s ease',
+                        width: `${nivelLlenado}%`,
+                        background: nivelLlenado < 30 ? '#EF4444' : nivelLlenado < 60 ? '#F59E0B' : '#22C55E'
+                      }} />
+                    </div>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: nivelLlenado < 30 ? '#EF4444' : nivelLlenado < 60 ? '#F59E0B' : '#22C55E', minWidth: 40 }}>{nivelLlenado}%</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5 }}>{lastResult}</p>
+                </div>
+
+                {/* Recomendación */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: '#52525B', marginBottom: 8 }}>Recomendación</div>
+                  {lastRecomendacion && lastRecomendacion !== 'Sin recomendación, estante bien abastecido'
+                    ? <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 10, padding: '12px 14px' }}>
+                        <p style={{ fontSize: 12, color: '#0369A1', lineHeight: 1.6, margin: 0 }}>{lastRecomendacion}</p>
+                      </div>
+                    : <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '12px 14px' }}>
+                        <p style={{ fontSize: 12, color: '#15803D', margin: 0 }}>Estante bien abastecido. Sin acción requerida.</p>
+                      </div>
+                  }
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-    </main>
+      </main>
+
+      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
+    </div>
   )
 }

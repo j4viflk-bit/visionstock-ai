@@ -18,10 +18,8 @@ export default function HistorialPage() {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
-
       const { data: camsData } = await supabase.from('cameras').select('*')
       setCameras(camsData || [])
-
       await loadData()
       setLoading(false)
     }
@@ -29,26 +27,14 @@ export default function HistorialPage() {
   }, [])
 
   const loadData = async (camara = filtroCamera, fecha = filtroFecha) => {
-    let analysesQuery = supabase
-      .from('analyses')
-      .select('*, cameras(name, location)')
-      .order('created_at', { ascending: false })
-      .limit(50)
-
+    let analysesQuery = supabase.from('analyses').select('*, cameras(name, location)').order('created_at', { ascending: false }).limit(50)
     if (camara) analysesQuery = analysesQuery.eq('camera_id', camara)
     if (fecha) analysesQuery = analysesQuery.gte('created_at', new Date(fecha).toISOString())
-
     const { data: analysesData } = await analysesQuery
 
-    let alertsQuery = supabase
-      .from('alerts')
-      .select('*, cameras(name, location)')
-      .order('created_at', { ascending: false })
-      .limit(50)
-
+    let alertsQuery = supabase.from('alerts').select('*, cameras(name, location)').order('created_at', { ascending: false }).limit(50)
     if (camara) alertsQuery = alertsQuery.eq('camera_id', camara)
     if (fecha) alertsQuery = alertsQuery.gte('created_at', new Date(fecha).toISOString())
-
     const { data: alertsData } = await alertsQuery
 
     setAnalyses(analysesData || [])
@@ -56,199 +42,213 @@ export default function HistorialPage() {
   }
 
   if (loading) return (
-    <main className="flex min-h-screen items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a00 50%, #0a0a0a 100%)' }}>
-      <div className="flex flex-col items-center gap-4">
-        <svg className="animate-spin w-10 h-10" style={{ color: '#ea580c' }} fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-        </svg>
-        <p className="text-gray-400 text-sm">Cargando historial...</p>
+    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#F4F4F5' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid #E4E4E7', borderTop: '3px solid #0EA5E9', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+        <p style={{ fontSize: 13, color: '#A1A1AA' }}>Cargando historial...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
-    </main>
+    </div>
   )
 
   return (
-    <main className="min-h-screen text-white" style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a00 50%, #0a0a0a 100%)' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif", background: '#F4F4F5' }}>
 
-      {/* Navbar */}
-      <nav className="border-b sticky top-0 z-50 backdrop-blur-sm" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.4)' }}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl p-2" style={{ background: 'linear-gradient(135deg, #ea580c, #dc2626)' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+      {/* SIDEBAR */}
+      <aside style={{ width: 240, background: '#1C1C1E', display: 'flex', flexDirection: 'column', height: '100vh', flexShrink: 0 }}>
+        <div style={{ padding: '24px 20px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 34, height: 34, background: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg style={{ width: 18, height: 18, color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>VisionStock AI</div>
+            <div style={{ color: '#52525B', fontSize: 10 }}>AI Monitoring</div>
+          </div>
+        </div>
+
+        <nav style={{ flex: 1, padding: '4px 12px' }}>
+          <div style={{ fontSize: 9, color: '#3F3F46', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '12px 8px 6px', fontWeight: 600 }}>Menú</div>
+          {[
+            { label: 'Dashboard', path: '/dashboard', active: false, d: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+            { label: 'Nodo', path: '/nodo', active: false, d: 'M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z' },
+            { label: 'Historial', path: '/historial', active: true, d: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+            { label: 'Inventario', path: '/inventario', active: false, d: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+          ].map(item => (
+            <div key={item.label} onClick={() => router.push(item.path)} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8,
+              cursor: 'pointer', marginBottom: 2, fontSize: 13,
+              background: item.active ? '#27272A' : 'transparent',
+              color: item.active ? '#fff' : '#71717A',
+              borderLeft: item.active ? '2px solid #0EA5E9' : '2px solid transparent'
+            }}>
+              <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.d} />
               </svg>
+              {item.label}
             </div>
-            <div>
-              <p className="font-bold text-sm">Historial</p>
-              <p className="text-gray-500 text-xs">VisionStock AI</p>
+          ))}
+        </nav>
+
+        <div style={{ padding: '16px 20px', borderTop: '1px solid #27272A' }}>
+          <div style={{ fontSize: 11, color: '#52525B' }}>Historial de análisis</div>
+        </div>
+      </aside>
+
+      {/* MAIN */}
+      <main style={{ flex: 1, overflowY: 'auto' }}>
+
+        {/* Topbar */}
+        <div style={{ background: '#fff', borderBottom: '1px solid #E4E4E7', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: '#09090B', letterSpacing: '-0.02em' }}>Historial completo</h1>
+          <span style={{ fontSize: 12, color: '#A1A1AA' }}>Últimos 50 registros</span>
+        </div>
+
+        <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Filtros */}
+          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', padding: 20, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <label style={{ fontSize: 11, fontWeight: 500, color: '#52525B', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cámara</label>
+              <select
+                value={filtroCamera}
+                onChange={e => setFiltroCamera(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E4E7', background: '#FAFAFA', color: '#09090B', outline: 'none', boxSizing: 'border-box' }}
+              >
+                <option value="">Todas las cámaras</option>
+                {cameras.map(cam => <option key={cam.id} value={cam.id}>{cam.name}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <label style={{ fontSize: 11, fontWeight: 500, color: '#52525B', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desde fecha</label>
+              <input
+                type="date"
+                value={filtroFecha}
+                onChange={e => setFiltroFecha(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E4E7', background: '#FAFAFA', color: '#09090B', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => loadData(filtroCamera, filtroFecha)}
+                style={{ padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: '#0EA5E9', color: '#fff' }}
+              >
+                Buscar
+              </button>
+              <button
+                onClick={() => { setFiltroCamera(''); setFiltroFecha(''); loadData('', '') }}
+                style={{ padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, border: '1px solid #E4E4E7', cursor: 'pointer', background: '#fff', color: '#71717A' }}
+              >
+                Limpiar
+              </button>
             </div>
           </div>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="px-4 py-2 rounded-xl text-sm transition text-gray-300 hover:text-white"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            Dashboard
-          </button>
-        </div>
-      </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-1">Historial completo</h1>
-          <p className="text-gray-500">Registro de todos los análisis y alertas generadas</p>
-        </div>
-
-        {/* Filtros */}
-        <div className="rounded-2xl p-5 mb-6 flex gap-4 flex-wrap items-end" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="flex-1 min-w-48">
-            <label className="text-gray-400 text-xs mb-2 block uppercase tracking-wide">Filtrar por cámara</label>
-            <select
-              value={filtroCamera}
-              onChange={(e) => setFiltroCamera(e.target.value)}
-              className="w-full text-white px-3 py-2 rounded-xl outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
-            >
-              <option value="">Todas las cámaras</option>
-              {cameras.map((cam) => (
-                <option key={cam.id} value={cam.id}>{cam.name}</option>
-              ))}
-            </select>
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { key: 'analisis', label: `Análisis (${analyses.length})` },
+              { key: 'alertas', label: `Alertas (${alerts.length})` },
+            ].map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key as any)}
+                style={{
+                  padding: '8px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  border: tab === t.key ? 'none' : '1px solid #E4E4E7',
+                  cursor: 'pointer',
+                  background: tab === t.key ? '#09090B' : '#fff',
+                  color: tab === t.key ? '#fff' : '#71717A',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-          <div className="flex-1 min-w-48">
-            <label className="text-gray-400 text-xs mb-2 block uppercase tracking-wide">Filtrar desde fecha</label>
-            <input
-              type="date"
-              value={filtroFecha}
-              onChange={(e) => setFiltroFecha(e.target.value)}
-              className="w-full text-white px-3 py-2 rounded-xl outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }}
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => loadData(filtroCamera, filtroFecha)}
-              className="px-4 py-2 rounded-xl text-sm font-semibold transition text-white"
-              style={{ background: 'linear-gradient(135deg, #ea580c, #dc2626)' }}
-            >
-              Buscar
-            </button>
-            <button
-              onClick={() => {
-                setFiltroCamera('')
-                setFiltroFecha('')
-                loadData('', '')
-              }}
-              className="px-4 py-2 rounded-xl text-sm transition text-gray-400 hover:text-white"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              Limpiar
-            </button>
-          </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setTab('analisis')}
-            className="px-4 py-2 rounded-xl text-sm font-semibold transition"
-            style={{
-              background: tab === 'analisis' ? 'linear-gradient(135deg, #ea580c, #dc2626)' : 'rgba(255,255,255,0.05)',
-              color: tab === 'analisis' ? '#fff' : '#9ca3af',
-              border: tab === 'analisis' ? 'none' : '1px solid rgba(255,255,255,0.08)'
-            }}
-          >
-            Análisis ({analyses.length})
-          </button>
-          <button
-            onClick={() => setTab('alertas')}
-            className="px-4 py-2 rounded-xl text-sm font-semibold transition"
-            style={{
-              background: tab === 'alertas' ? 'linear-gradient(135deg, #ea580c, #dc2626)' : 'rgba(255,255,255,0.05)',
-              color: tab === 'alertas' ? '#fff' : '#9ca3af',
-              border: tab === 'alertas' ? 'none' : '1px solid rgba(255,255,255,0.08)'
-            }}
-          >
-            Alertas ({alerts.length})
-          </button>
-        </div>
-
-        {/* Tabla análisis */}
-        {tab === 'analisis' && (
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            {analyses.length === 0 ? (
-              <p className="text-gray-500 text-center p-8 text-sm">No hay análisis registrados</p>
-            ) : (
-              analyses.map((a, i) => (
-                <div
-                  key={a.id}
-                  className="px-5 py-4 flex justify-between items-start hover:bg-white/5 transition"
-                  style={{ borderBottom: i !== analyses.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
-                >
-                  <div className="flex-1 pr-4">
-                    <p className="text-sm font-medium">{a.cameras?.name}</p>
-                    <p className="text-gray-500 text-xs mt-0.5">{a.description}</p>
-                    {a.recomendacion && a.recomendacion !== 'Sin recomendación, estante bien abastecido' && (
-                      <p className="text-xs mt-1" style={{ color: '#fb923c' }}>
-                        Recomendación: {a.recomendacion}
-                      </p>
-                    )}
-                    <p className="text-gray-600 text-xs mt-0.5">{new Date(a.created_at).toLocaleString('es-CL')}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold"
-                      style={a.status === 'vacio'
-                        ? { background: 'rgba(220,38,38,0.2)', color: '#f87171', border: '1px solid rgba(220,38,38,0.3)' }
-                        : { background: 'rgba(34,197,94,0.2)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }
-                      }>
-                      {a.status === 'vacio' ? 'Faltante' : 'OK'}
-                    </span>
-                    <span className="text-gray-600 text-xs">{Math.round(a.confidence * 100)}% confianza</span>
-                    {a.nivel_llenado !== null && a.nivel_llenado !== undefined && (
-                      <span className="text-xs" style={{ color: a.nivel_llenado < 30 ? '#f87171' : '#fb923c' }}>
-                        {a.nivel_llenado}% lleno
-                      </span>
-                    )}
-                  </div>
+          {/* Tabla análisis */}
+          {tab === 'analisis' && (
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              {analyses.length === 0 ? (
+                <div style={{ padding: '48px', textAlign: 'center' }}>
+                  <p style={{ fontSize: 13, color: '#A1A1AA' }}>No hay análisis registrados</p>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#FAFAFA' }}>
+                      {['Cámara', 'Descripción', 'Recomendación', 'Nivel', 'Estado', 'Fecha'].map(h => (
+                        <th key={h} style={{ fontSize: 10, color: '#A1A1AA', padding: '10px 16px', textAlign: 'left', fontWeight: 500, borderBottom: '1px solid #F4F4F5', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analyses.map((a, i) => (
+                      <tr key={a.id} style={{ borderBottom: i < analyses.length - 1 ? '1px solid #F4F4F5' : 'none' }}>
+                        <td style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#09090B', whiteSpace: 'nowrap' }}>{a.cameras?.name}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#71717A', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.description}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#0EA5E9', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {a.recomendacion && a.recomendacion !== 'Sin recomendación, estante bien abastecido' ? a.recomendacion : '—'}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ width: 48, height: 4, background: '#F4F4F5', borderRadius: 2, overflow: 'hidden' }}>
+                              <div style={{ width: `${a.nivel_llenado || 0}%`, height: 4, background: a.status === 'vacio' ? '#EF4444' : '#22C55E', borderRadius: 2 }} />
+                            </div>
+                            <span style={{ fontSize: 10, color: a.status === 'vacio' ? '#EF4444' : '#22C55E', fontWeight: 500 }}>{a.nivel_llenado || 0}%</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: a.status === 'vacio' ? '#FEE2E2' : '#DCFCE7', color: a.status === 'vacio' ? '#EF4444' : '#16A34A' }}>
+                            {a.status === 'vacio' ? 'Faltante' : 'OK'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#A1A1AA', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString('es-CL')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
 
-        {/* Tabla alertas */}
-        {tab === 'alertas' && (
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            {alerts.length === 0 ? (
-              <p className="text-gray-500 text-center p-8 text-sm">No hay alertas registradas</p>
-            ) : (
-              alerts.map((a, i) => (
-                <div
-                  key={a.id}
-                  className="px-5 py-4 flex justify-between items-center hover:bg-white/5 transition"
-                  style={{ borderBottom: i !== alerts.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
-                >
-                  <div>
-                    <p className="text-sm font-medium">{a.cameras?.name}</p>
-                    <p className="text-gray-500 text-xs mt-0.5">{a.cameras?.location}</p>
-                    <p className="text-gray-600 text-xs mt-0.5">{new Date(a.created_at).toLocaleString('es-CL')}</p>
-                  </div>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold"
-                    style={a.status === 'activa'
-                      ? { background: 'rgba(220,38,38,0.2)', color: '#f87171', border: '1px solid rgba(220,38,38,0.3)' }
-                      : { background: 'rgba(34,197,94,0.2)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }
-                    }>
-                    {a.status === 'activa' ? 'Activa' : 'Resuelta'}
-                  </span>
+          {/* Tabla alertas */}
+          {tab === 'alertas' && (
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              {alerts.length === 0 ? (
+                <div style={{ padding: '48px', textAlign: 'center' }}>
+                  <p style={{ fontSize: 13, color: '#A1A1AA' }}>No hay alertas registradas</p>
                 </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    </main>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#FAFAFA' }}>
+                      {['Cámara', 'Ubicación', 'Estado', 'Fecha'].map(h => (
+                        <th key={h} style={{ fontSize: 10, color: '#A1A1AA', padding: '10px 16px', textAlign: 'left', fontWeight: 500, borderBottom: '1px solid #F4F4F5', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {alerts.map((a, i) => (
+                      <tr key={a.id} style={{ borderBottom: i < alerts.length - 1 ? '1px solid #F4F4F5' : 'none' }}>
+                        <td style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#09090B' }}>{a.cameras?.name}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#71717A' }}>{a.cameras?.location}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: a.status === 'activa' ? '#FEE2E2' : '#DCFCE7', color: a.status === 'activa' ? '#EF4444' : '#16A34A' }}>
+                            {a.status === 'activa' ? 'Activa' : 'Resuelta'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#A1A1AA' }}>{new Date(a.created_at).toLocaleString('es-CL')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   )
 }

@@ -8,59 +8,79 @@ export default function Home() {
   const [countdown, setCountdown] = useState(3)
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => prev - 1)
-    }, 1000)
-
-    const redirect = setTimeout(() => {
-      router.push('/login')
-    }, 3000)
-
-    return () => {
-      clearInterval(timer)
-      clearTimeout(redirect)
-    }
+    const timer = setInterval(() => setCountdown(p => p - 1), 1000)
+    const redirect = setTimeout(() => router.push('/login'), 3000)
+    return () => { clearInterval(timer); clearTimeout(redirect) }
   }, [])
 
   return (
-    <main className="flex min-h-screen items-center justify-center overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a00 50%, #0a0a0a 100%)' }}>
+    <main style={{
+      minHeight: '100vh', background: '#F4F4F5',
+      fontFamily: "'Inter', -apple-system, sans-serif",
+      display: 'flex', flexDirection: 'column'
+    }}>
 
-      {/* Fondo animado */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full opacity-10 blur-3xl animate-pulse" style={{ background: '#ea580c' }} />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full opacity-10 blur-3xl animate-pulse" style={{ background: '#dc2626' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5" style={{ background: '#f97316' }} />
-      </div>
-
-      <div className="relative z-10 text-center px-6">
-        <div className="flex justify-center mb-6">
-          <div className="rounded-2xl p-5 shadow-2xl" style={{ background: 'linear-gradient(135deg, #ea580c, #dc2626)' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+      {/* Navbar top */}
+      <nav style={{ background: '#fff', borderBottom: '1px solid #E4E4E7', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 30, height: 30, background: '#0EA5E9', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg style={{ width: 16, height: 16, color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
             </svg>
           </div>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#09090B' }}>VisionStock AI</span>
         </div>
-
-        <h1 className="text-5xl font-bold text-white mb-3 tracking-tight">
-          VisionStock <span style={{ color: '#f97316' }}>AI</span>
-        </h1>
-        <p className="text-gray-400 text-lg mb-2">Sistema de monitoreo de inventario</p>
-        <p className="text-gray-500 text-sm mb-10">Visión computacional · IA · Tiempo real</p>
-
-        <div className="flex justify-center gap-3 mb-12 flex-wrap">
-          <span className="px-3 py-1 rounded-full text-xs font-semibold border" style={{ background: 'rgba(234,88,12,0.15)', color: '#fb923c', borderColor: 'rgba(234,88,12,0.3)' }}>Cámara IoT</span>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold border" style={{ background: 'rgba(220,38,38,0.15)', color: '#f87171', borderColor: 'rgba(220,38,38,0.3)' }}>IA Multimodal</span>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold border" style={{ background: 'rgba(234,88,12,0.15)', color: '#fb923c', borderColor: 'rgba(234,88,12,0.3)' }}>Tiempo Real</span>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold border" style={{ background: 'rgba(220,38,38,0.15)', color: '#f87171', borderColor: 'rgba(220,38,38,0.3)' }}>Telegram</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E' }} />
+          <span style={{ fontSize: 11, color: '#71717A' }}>Sistema activo</span>
         </div>
+      </nav>
 
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center border-4" style={{ borderColor: '#ea580c' }}>
-            <span className="text-2xl font-bold" style={{ color: '#f97316' }}>{countdown}</span>
+      {/* Hero */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', gap: 48 }}>
+
+        {/* Texto principal */}
+        <div style={{ textAlign: 'center', maxWidth: 560 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E0F2FE', borderRadius: 20, padding: '4px 12px', marginBottom: 24 }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#0EA5E9', animation: 'blink 1.5s infinite' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#0284C7' }}>Monitoreo en tiempo real</span>
           </div>
-          <p className="text-gray-500 text-sm">Redirigiendo al login...</p>
+
+          <h1 style={{ fontSize: 'clamp(32px, 6vw, 52px)', fontWeight: 800, color: '#09090B', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 16 }}>
+            Inventario inteligente<br />
+            <span style={{ color: '#0EA5E9' }}>con visión artificial</span>
+          </h1>
+
+          <p style={{ fontSize: 'clamp(13px, 2vw, 16px)', color: '#71717A', lineHeight: 1.6, marginBottom: 32 }}>
+            Detecta quiebres de stock automáticamente con inteligencia artificial y cámaras IoT. Recibe alertas en Telegram al instante.
+          </p>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 40 }}>
+            {['Cámara IoT', 'IA Multimodal', 'Tiempo Real', 'Notificaciones Telegram', 'Predicción de quiebres'].map(tag => (
+              <span key={tag} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 500, background: '#fff', color: '#52525B', border: '1px solid #E4E4E7' }}>{tag}</span>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', border: '2px solid #0EA5E9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#0EA5E9' }}>{countdown}</span>
+            </div>
+            <span style={{ fontSize: 12, color: '#A1A1AA' }}>Redirigiendo al login...</span>
+          </div>
         </div>
+
+        {/* Imagen */}
+        <div style={{ width: '100%', maxWidth: 760, borderRadius: 20, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', border: '1px solid #E4E4E7' }}>
+          <img
+            src="/quiebredestock.png"
+            alt="VisionStock AI"
+            style={{ width: '100%', height: 'auto', display: 'block' }}
+          />
+        </div>
+
       </div>
+
+      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
     </main>
   )
 }

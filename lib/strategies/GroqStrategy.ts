@@ -15,13 +15,11 @@ export class GroqStrategy implements AIStrategy {
 
   async analyze(imageBase64: string, productosEnStock?: ProductoStock[]): Promise<AnalysisResult> {
 
-    // Construir contexto de inventario
+    // Contexto de inventario compacto
     let contextoInventario = ''
     if (productosEnStock && productosEnStock.length > 0) {
-      contextoInventario = `\n\nINVENTARIO DISPONIBLE EN BODEGA:
-${productosEnStock.map((p: any) => `- ${p.nombre} (categoría: ${p.categoria}, stock: ${p.stock_actual} ${p.unidad}, mínimo: ${p.stock_minimo} ${p.unidad})`).join('\n')}
-
-INSTRUCCIÓN OBLIGATORIA: Cuando el estante esté vacío o con poco stock, tu campo "recomendacion" DEBE sugerir ÚNICAMENTE productos de la lista anterior que tengan coherencia visual con lo que ves en el estante. Por ejemplo, si ves snacks o papas fritas, recomienda productos de snacks del inventario. Si ves bebidas, recomienda bebidas del inventario. NO recomiendes productos de categorías distintas a lo que ves. Usa los nombres EXACTOS del inventario.`
+      const lista = productosEnStock.map((p: any) => `${p.nombre}(${p.categoria})`).join(', ')
+      contextoInventario = `\nInventario disponible: ${lista}. Recomienda SOLO estos productos cuando el estante esté vacío.`
     }
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -37,39 +35,16 @@ INSTRUCCIÓN OBLIGATORIA: Cuando el estante esté vacío o con poco stock, tu ca
           content: [
             {
               type: 'text',
-              text: `Eres un sistema experto en gestión de inventario retail. Analiza esta imagen con máximo detalle y precisión.${contextoInventario}
+              text: `Analiza esta imagen de una tienda.${contextoInventario}
 
-Responde SOLO con este JSON exacto, sin texto adicional:
-{
-  "status": "vacio", "con_producto" o "no_estante",
-  "confidence": número entre 0 y 1,
-  "nivel_llenado": número entre 0 y 100,
-  "zonas_vacias": "descripción exacta de zonas vacías o 'Ninguna'",
-  "productos_detectados": "lista de productos visibles con marca, color y categoría",
-  "recomendacion": "recomendación SOLO con productos del inventario que sean coherentes con lo que ves",
-  "urgencia": "ninguna", "baja", "media" o "alta",
-  "description": "descripción objetiva del estado actual del estante"
-}
+Responde SOLO con JSON válido sin texto adicional:
+{"status":"vacio|con_producto|no_estante","confidence":0.9,"nivel_llenado":50,"zonas_vacias":"descripción","productos_detectados":"descripción","recomendacion":"texto","urgencia":"ninguna|baja|media|alta","description":"descripción"}
 
-Reglas estrictas:
-
-SI la imagen NO muestra una estantería de tienda:
-- status = "no_estante", urgencia = "ninguna"
-- description = "La imagen no corresponde a una estantería de tienda"
-- recomendacion = "Apuntar la cámara hacia un estante de productos"
-- nivel_llenado = 0
-
-SI el estante está VACÍO (nivel_llenado menor a 30%):
-- status = "vacio", urgencia = "alta"
-- recomendacion: usa SOLO productos del inventario que sean coherentes con lo que ves
-
-SI el estante está MEDIO lleno (nivel_llenado entre 30% y 79%):
-- status = "vacio", urgencia = "media" o "alta"
-- recomendacion: indica qué productos del inventario faltan y dónde
-
-SI el estante está LLENO (nivel_llenado 80% o más):
-- status = "con_producto", urgencia = "ninguna" o "baja"
-- recomendacion = "Sin recomendación, estante bien abastecido" o indicar desorden si lo hay`
+Reglas:
+- Si NO es estante de tienda: status=no_estante, nivel_llenado=0
+- Si estante vacío (<30%): status=vacio, urgencia=alta
+- Si estante medio (30-79%): status=vacio, urgencia=media
+- Si estante lleno (≥80%): status=con_producto, urgencia=ninguna`
             },
             {
               type: 'image_url',
@@ -78,21 +53,46 @@ SI el estante está LLENO (nivel_llenado 80% o más):
           ]
         }],
         temperature: 0.1,
-        max_tokens: 600
+        max_tokens: 400
       })
     })
 
     const data = await response.json()
+    console.log('Groq status HTTP:', response.status)
+    console.log('Groq finish_reason:', data.choices?.[0]?.finish_reason)
     const rawText = data.choices?.[0]?.message?.content || ''
+    console.log('Groq rawText:', rawText)
 
     if (!rawText || rawText.trim() === '') {
-      throw new Error('Groq devolvió respuesta vacía')
+      console.error('Groq error completo:', JSON.stringify(data))
+      return {
+        status: 'no_estante',
+        confidence: 0,
+        nivel_llenado: 0,
+        zonas_vacias: '',
+        productos_detectados: '',
+        recomendacion: 'No se pudo analizar la imagen',
+        urgencia: 'ninguna',
+        description: 'No se pudo analizar la imagen'
+      }
     }
 
     const cleaned = rawText.replace(/```json|```/g, '').trim()
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
 
-    if (!jsonMatch) throw new Error('No se encontró JSON en la respuesta de Groq')
+    if (!jsonMatch) {
+      console.error('No se encontró JSON en:', rawText)
+      return {
+        status: 'no_estante',
+        confidence: 0,
+        nivel_llenado: 0,
+        zonas_vacias: '',
+        productos_detectados: '',
+        recomendacion: 'No se pudo analizar la imagen',
+        urgencia: 'ninguna',
+        description: 'No se pudo analizar la imagen'
+      }
+    }
 
     const result = JSON.parse(jsonMatch[0])
 
