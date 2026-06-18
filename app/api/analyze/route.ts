@@ -88,7 +88,8 @@ export async function POST(req: NextRequest) {
 
       const disponibles = productosFinales.filter((p: any) => p.stock_actual > p.stock_minimo)
       const bajoStock = productosFinales.filter((p: any) => p.stock_actual <= p.stock_minimo)
-      const prioritarios = [...bajoStock, ...disponibles].slice(0, 3)
+      const maxProductos = result.nivel_llenado < 30 ? 4 : result.nivel_llenado < 60 ? 3 : 2
+const prioritarios = [...bajoStock, ...disponibles].slice(0, maxProductos)
 
       let recomendacion = ''
       const dispP = prioritarios.filter((p: any) => p.stock_actual > p.stock_minimo)
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
     if (analysisError) throw analysisError
 
     // 7. Si está vacío, crear alerta y notificar
-    if (result.status === 'vacio') {
+    if (result.status === 'vacio' || (result.nivel_llenado !== null && result.nivel_llenado < 80)) {
       await supabase.from('alerts').insert({
         analysis_id: analysis.id,
         camera_id: cameraId,

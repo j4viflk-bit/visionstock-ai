@@ -15,7 +15,7 @@ export default function InventarioPage() {
   const [userEmail, setUserEmail] = useState('')
   const [userRole, setUserRole] = useState('')
   const [form, setForm] = useState({
-    nombre: '', categoria: '', stock_actual: 0, stock_minimo: 5, unidad: 'unidades', camera_id: ''
+    nombre: '', categoria: '', stock_actual: 0, stock_minimo: 5, unidad: 'unidades', camera_id: '', fecha_vencimiento: ''
   })
 
   useEffect(() => {
@@ -46,14 +46,14 @@ export default function InventarioPage() {
     } else {
       await supabase.from('productos').insert(form)
     }
-    setForm({ nombre: '', categoria: '', stock_actual: 0, stock_minimo: 5, unidad: 'unidades', camera_id: '' })
+    setForm({ nombre: '', categoria: '', stock_actual: 0, stock_minimo: 5, unidad: 'unidades', camera_id: '', fecha_vencimiento: '' })
     setShowForm(false); setEditando(null)
     await loadData()
   }
 
   const handleEdit = (producto: any) => {
     setEditando(producto)
-    setForm({ nombre: producto.nombre, categoria: producto.categoria, stock_actual: producto.stock_actual, stock_minimo: producto.stock_minimo, unidad: producto.unidad, camera_id: producto.camera_id || '' })
+    setForm({ nombre: producto.nombre, categoria: producto.categoria, stock_actual: producto.stock_actual, stock_minimo: producto.stock_minimo, unidad: producto.unidad, camera_id: producto.camera_id || '', fecha_vencimiento: producto.fecha_vencimiento || '' })
     setShowForm(true)
   }
 
@@ -103,15 +103,24 @@ export default function InventarioPage() {
       <main style={{ flex: 1, overflowY: 'auto' }}>
 
         {/* Topbar desktop */}
-        <div className="topbar-desktop" style={{ background: '#fff', borderBottom: '1px solid #E4E4E7', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: '#09090B', letterSpacing: '-0.02em' }}>Inventario</h1>
-          <button
-            onClick={() => { setShowForm(!showForm); setEditando(null); setForm({ nombre: '', categoria: '', stock_actual: 0, stock_minimo: 5, unidad: 'unidades', camera_id: '' }) }}
-            style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: showForm ? '#F4F4F5' : '#0EA5E9', color: showForm ? '#71717A' : '#fff' }}
-          >
-            {showForm ? 'Cancelar' : '+ Agregar'}
-          </button>
-        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+  <button
+    onClick={async () => {
+      const res = await fetch('/api/vencimiento')
+      const data = await res.json()
+      alert(data.mensaje)
+    }}
+    style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: '1px solid #E4E4E7', cursor: 'pointer', background: '#fff', color: '#71717A' }}
+  >
+    Verificar vencimientos
+  </button>
+  <button
+    onClick={() => { setShowForm(!showForm); setEditando(null); setForm({ nombre: '', categoria: '', stock_actual: 0, stock_minimo: 5, unidad: 'unidades', camera_id: '', fecha_vencimiento: '' }) }}
+    style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: showForm ? '#F4F4F5' : '#0EA5E9', color: showForm ? '#71717A' : '#fff' }}
+  >
+    {showForm ? 'Cancelar' : '+ Agregar'}
+  </button>
+</div>
 
         {/* Espacio topbar mobile */}
         <div className="topbar-mobile-space" style={{ display: 'none', height: 56 }} />
@@ -122,7 +131,17 @@ export default function InventarioPage() {
             {/* Botón agregar mobile */}
             <div className="btn-mobile" style={{ display: 'none' }}>
               <button
-                onClick={() => { setShowForm(!showForm); setEditando(null); setForm({ nombre: '', categoria: '', stock_actual: 0, stock_minimo: 5, unidad: 'unidades', camera_id: '' }) }}
+                onClick={async () => {
+                  const res = await fetch('/api/vencimiento')
+                  const data = await res.json()
+                  alert(data.mensaje)
+                }}
+                style={{ width: '100%', padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: '1px solid #E4E4E7', cursor: 'pointer', background: '#fff', color: '#71717A', marginBottom: 8 }}
+              >
+                Verificar vencimientos
+              </button>
+              <button
+                onClick={() => { setShowForm(!showForm); setEditando(null); setForm({ nombre: '', categoria: '', stock_actual: 0, stock_minimo: 5, unidad: 'unidades', camera_id: '', fecha_vencimiento: '' }) }}
                 style={{ width: '100%', padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: showForm ? '#F4F4F5' : '#0EA5E9', color: showForm ? '#71717A' : '#fff' }}
               >
                 {showForm ? 'Cancelar' : '+ Agregar producto'}
@@ -167,6 +186,18 @@ export default function InventarioPage() {
                       />
                     </div>
                   ))}
+
+                  {/* Fecha de vencimiento */}
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: '#52525B', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fecha de vencimiento</label>
+                    <input
+                      type="date"
+                      value={form.fecha_vencimiento}
+                      onChange={e => setForm({ ...form, fecha_vencimiento: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
+
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 500, color: '#52525B', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unidad</label>
                     <select value={form.unidad} onChange={e => setForm({ ...form, unidad: e.target.value })} style={inputStyle}>
@@ -206,7 +237,7 @@ export default function InventarioPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
                   <thead>
                     <tr style={{ background: '#FAFAFA' }}>
-                      {['Producto', 'Categoría', 'Cámara', 'Stock', 'Estado', 'Acciones'].map(h => (
+                      {['Producto', 'Categoría', 'Cámara', 'Stock', 'Vence', 'Estado', 'Acciones'].map(h => (
                         <th key={h} style={{ fontSize: 10, color: '#A1A1AA', padding: '10px 16px', textAlign: 'left', fontWeight: 500, borderBottom: '1px solid #F4F4F5', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -227,6 +258,17 @@ export default function InventarioPage() {
                             <button onClick={() => handleStockUpdate(p.id, p.stock_actual + 1)} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#22C55E', cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                           </div>
                           <div style={{ fontSize: 10, color: '#A1A1AA', marginTop: 4 }}>Mín: {p.stock_minimo} {p.unidad}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          {p.fecha_vencimiento ? (
+                            <span style={{
+                              fontSize: 11, padding: '3px 8px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap',
+                              background: new Date(p.fecha_vencimiento) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? '#FEF2F2' : '#F4F4F5',
+                              color: new Date(p.fecha_vencimiento) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? '#EF4444' : '#71717A'
+                            }}>
+                              {new Date(p.fecha_vencimiento).toLocaleDateString('es-CL')}
+                            </span>
+                          ) : <span style={{ fontSize: 11, color: '#A1A1AA' }}>—</span>}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: p.stock_actual <= p.stock_minimo ? '#FEE2E2' : '#DCFCE7', color: p.stock_actual <= p.stock_minimo ? '#EF4444' : '#16A34A', whiteSpace: 'nowrap' }}>
