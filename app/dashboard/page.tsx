@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import Sidebar from '@/components/Sidebar'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -80,64 +81,19 @@ export default function DashboardPage() {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif" }}>
 
-      {/* SIDEBAR */}
-      <aside style={{ width: 240, background: '#1C1C1E', display: 'flex', flexDirection: 'column', height: '100vh', flexShrink: 0 }}>
-        <div style={{ padding: '24px 20px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 34, height: 34, background: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg style={{ width: 18, height: 18, color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-            </svg>
-          </div>
-          <div>
-            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em' }}>VisionStock</div>
-            <div style={{ color: '#52525B', fontSize: 10, marginTop: 1 }}>monitoreo con IA</div>
-          </div>
-        </div>
-
-        <nav style={{ flex: 1, padding: '4px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ fontSize: 9, color: '#3F3F46', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '12px 8px 6px', fontWeight: 600 }}>Menú</div>
-          {[
-            { label: 'Dashboard', path: '/dashboard', active: true, d: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-            { label: 'Nodo', path: '/nodo', active: false, onlyDueno: true, d: 'M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z', badge: alerts.length > 0 ? alerts.length : null },
-            { label: 'Historial', path: '/historial', active: false, onlyDueno: true, d: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-            { label: 'Inventario', path: '/inventario', active: false, onlyDueno: true, d: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-          ].filter(i => !i.onlyDueno || userRole === 'dueno').map(item => (
-            <div key={item.label} onClick={() => router.push(item.path)} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
-              background: item.active ? '#27272A' : 'transparent',
-              color: item.active ? '#fff' : '#71717A',
-              fontSize: 13, fontWeight: item.active ? 500 : 400
-            }}>
-              <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.d} />
-              </svg>
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.badge && <span style={{ background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 20 }}>{item.badge}</span>}
-            </div>
-          ))}
-        </nav>
-
-        <div style={{ padding: '16px 20px', borderTop: '1px solid #27272A', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, background: '#0EA5E9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-            {userEmail.charAt(0).toUpperCase()}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: '#E4E4E7', fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>
-            <div style={{ color: '#52525B', fontSize: 10, marginTop: 1 }}>{userRole === 'dueno' ? 'Dueño' : 'Empleado'}</div>
-          </div>
-          <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#52525B', padding: 4, borderRadius: 6, display: 'flex' }}>
-            <svg style={{ width: 15, height: 15 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
-        </div>
-      </aside>
+      <Sidebar
+        userEmail={userEmail}
+        userRole={userRole}
+        activePage="/dashboard"
+        alertCount={alerts.length}
+        onLogout={handleLogout}
+      />
 
       {/* MAIN */}
       <main style={{ flex: 1, overflowY: 'auto', background: '#F4F4F5' }}>
 
         {/* Topbar */}
-        <div style={{ background: '#fff', borderBottom: '1px solid #E4E4E7', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
+        <div style={{ background: '#fff', borderBottom: '1px solid #E4E4E7', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }} className="topbar-desktop">
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#09090B', letterSpacing: '-0.02em' }}>Dashboard</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 2px rgba(34,197,94,0.2)' }} />
@@ -145,11 +101,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Topbar mobile spacing */}
+        <div className="topbar-mobile-space" style={{ display: 'none', height: 56 }} />
+
+        <div style={{ padding: 28 }} className="main-padding">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* CARDS TOP */}
           {userRole === 'dueno' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gap: 16 }} className="cards-grid">
               <div style={{ background: '#1C1C1E', borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: 'rgba(239,68,68,0.15)', borderRadius: '50%' }} />
                 <div style={{ width: 36, height: 36, background: 'rgba(239,68,68,0.2)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
@@ -171,7 +131,7 @@ export default function DashboardPage() {
                 { label: 'Sistema', value: 'Online', sub: 'Vercel · activo', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', ic: '#22C55E', bg: '#DCFCE7' },
               ].map(card => (
                 <div key={card.label} style={{ background: '#fff', borderRadius: 16, padding: 20, border: '1px solid #E4E4E7' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ marginBottom: 14 }}>
                     <div style={{ width: 36, height: 36, background: card.bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <svg style={{ width: 18, height: 18, color: card.ic }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={card.icon} />
@@ -186,9 +146,9 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* GRÁFICO + TABLA LADO A LADO */}
+          {/* GRÁFICO + TABLA */}
           {userRole === 'dueno' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr', gap: 16 }}>
+            <div style={{ display: 'grid', gap: 16 }} className="chart-grid">
               <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', padding: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Esta semana</span>
@@ -249,9 +209,9 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* PREDICCIÓN DE QUIEBRES */}
+          {/* PREDICCIÓN */}
           {userRole === 'dueno' && prediccion && (
-            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid #F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Predicción de quiebres</span>
                 {prediccion.prediccion?.alerta
@@ -259,13 +219,11 @@ export default function DashboardPage() {
                   : <span style={{ fontSize: 11, color: '#A1A1AA' }}>Últimos 30 días</span>
                 }
               </div>
-              {prediccion.horas_criticas?.length === 0 && prediccion.dias_criticos?.length === 0 ? (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#A1A1AA', fontSize: 12 }}>
-                  Sin suficiente historial para predecir.
-                </div>
+              {(!prediccion.horas_criticas?.length && !prediccion.dias_criticos?.length) ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#A1A1AA', fontSize: 12 }}>Sin suficiente historial para predecir.</div>
               ) : (
                 <>
-                  <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                  <div style={{ padding: 20, display: 'grid', gap: 24 }} className="prediccion-grid">
                     <div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Días con más quiebres</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -303,9 +261,7 @@ export default function DashboardPage() {
                   </div>
                   {prediccion.prediccion?.mensaje && (
                     <div style={{ margin: '0 20px 20px', padding: '10px 14px', background: prediccion.prediccion.alerta ? '#FEF2F2' : '#F0F9FF', borderRadius: 10, border: `1px solid ${prediccion.prediccion.alerta ? '#FECACA' : '#BAE6FD'}` }}>
-                      <p style={{ fontSize: 12, color: prediccion.prediccion.alerta ? '#DC2626' : '#0369A1', margin: 0, lineHeight: 1.6 }}>
-                        {prediccion.prediccion.mensaje}
-                      </p>
+                      <p style={{ fontSize: 12, color: prediccion.prediccion.alerta ? '#DC2626' : '#0369A1', margin: 0, lineHeight: 1.6 }}>{prediccion.prediccion.mensaje}</p>
                     </div>
                   )}
                 </>
@@ -330,9 +286,9 @@ export default function DashboardPage() {
                 <p style={{ fontSize: 12, color: '#A1A1AA', marginTop: 4 }}>No hay quiebres detectados</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 0 }}>
+              <div>
                 {alerts.map((alert) => (
-                  <div key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #F4F4F5', borderRight: '1px solid #F4F4F5' }}>
+                  <div key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #F4F4F5' }}>
                     <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#F4F4F5', border: '1px solid #E4E4E7' }}>
                       {alert.analyses?.image_url
                         ? <img src={alert.analyses.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -363,10 +319,25 @@ export default function DashboardPage() {
             )}
           </div>
 
+          </div>
         </div>
       </main>
 
-      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
+      <style>{`
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .cards-grid { grid-template-columns: 1.2fr 1fr 1fr 1fr; }
+        .chart-grid { grid-template-columns: 1fr 1.8fr; }
+        .prediccion-grid { grid-template-columns: 1fr 1fr; }
+        .topbar-mobile-space { display: none; }
+        @media (max-width: 768px) {
+          .topbar-desktop { display: none !important; }
+          .topbar-mobile-space { display: block !important; }
+          .main-padding { padding: 16px !important; }
+          .cards-grid { grid-template-columns: 1fr 1fr !important; }
+          .chart-grid { grid-template-columns: 1fr !important; }
+          .prediccion-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }
