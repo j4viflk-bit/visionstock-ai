@@ -35,16 +35,26 @@ export class GroqStrategy implements AIStrategy {
           content: [
             {
               type: 'text',
-              text: `Analiza esta imagen de una tienda.${contextoInventario}
+              text: `Eres un experto en análisis visual de estantes de supermercado. Analiza esta imagen con precisión.${contextoInventario}
+
+INSTRUCCIONES PARA CALCULAR nivel_llenado:
+- Observa TODO el estante visible en la imagen
+- Calcula qué porcentaje del espacio total tiene productos
+- Si hay productos en algunos sectores y vacío en otros, promedia correctamente
+- Ejemplo: estante con mitad izquierda llena y mitad derecha vacía = 50%
+- Ejemplo: estante con 3 de 4 filas con productos = 75%
+- Sé preciso, no subestimes ni sobreestimes
 
 Responde SOLO con JSON válido sin texto adicional:
 {"status":"vacio|con_producto|no_estante","confidence":0.9,"nivel_llenado":50,"zonas_vacias":"descripción","productos_detectados":"descripción","recomendacion":"texto","urgencia":"ninguna|baja|media|alta","description":"descripción"}
 
-Reglas:
-- Si NO es estante de tienda: status=no_estante, nivel_llenado=0
-- Si estante vacío (<30%): status=vacio, urgencia=alta
-- Si estante medio (30-79%): status=vacio, urgencia=media
-- Si estante lleno (≥80%): status=con_producto, urgencia=ninguna`
+Reglas de clasificación:
+- Si NO es estante de tienda: status=no_estante, nivel_llenado=0, urgencia=ninguna
+- Si nivel_llenado < 80%: status=vacio
+  - nivel_llenado entre 60% y 79%: urgencia=baja
+  - nivel_llenado entre 30% y 59%: urgencia=media
+  - nivel_llenado menor a 30%: urgencia=alta
+- Si nivel_llenado >= 80%: status=con_producto, urgencia=ninguna`
             },
             {
               type: 'image_url',

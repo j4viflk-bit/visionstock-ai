@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import Sidebar from '@/components/Sidebar'
 
 export default function HistorialPage() {
   const router = useRouter()
@@ -13,11 +14,16 @@ export default function HistorialPage() {
   const [filtroFecha, setFiltroFecha] = useState('')
   const [cameras, setCameras] = useState<any[]>([])
   const [tab, setTab] = useState<'analisis' | 'alertas'>('analisis')
+  const [userEmail, setUserEmail] = useState('')
+  const [userRole, setUserRole] = useState('')
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/login'); return }
+      setUserEmail(session.user.email || '')
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
+      setUserRole(profile?.role || 'empleado')
       const { data: camsData } = await supabase.from('cameras').select('*')
       setCameras(camsData || [])
       await loadData()
@@ -41,6 +47,8 @@ export default function HistorialPage() {
     setAlerts(alertsData || [])
   }
 
+  const handleLogout = async () => { await supabase.auth.signOut(); router.push('/login') }
+
   if (loading) return (
     <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#F4F4F5' }}>
       <div style={{ textAlign: 'center' }}>
@@ -54,201 +62,170 @@ export default function HistorialPage() {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif", background: '#F4F4F5' }}>
 
-      {/* SIDEBAR */}
-      <aside style={{ width: 240, background: '#1C1C1E', display: 'flex', flexDirection: 'column', height: '100vh', flexShrink: 0 }}>
-        <div style={{ padding: '24px 20px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 34, height: 34, background: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg style={{ width: 18, height: 18, color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-            </svg>
-          </div>
-          <div>
-            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>VisionStock AI</div>
-            <div style={{ color: '#52525B', fontSize: 10 }}>AI Monitoring</div>
-          </div>
-        </div>
-
-        <nav style={{ flex: 1, padding: '4px 12px' }}>
-          <div style={{ fontSize: 9, color: '#3F3F46', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '12px 8px 6px', fontWeight: 600 }}>Menú</div>
-          {[
-            { label: 'Dashboard', path: '/dashboard', active: false, d: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-            { label: 'Nodo', path: '/nodo', active: false, d: 'M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z' },
-            { label: 'Historial', path: '/historial', active: true, d: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-            { label: 'Inventario', path: '/inventario', active: false, d: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-          ].map(item => (
-            <div key={item.label} onClick={() => router.push(item.path)} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8,
-              cursor: 'pointer', marginBottom: 2, fontSize: 13,
-              background: item.active ? '#27272A' : 'transparent',
-              color: item.active ? '#fff' : '#71717A',
-              borderLeft: item.active ? '2px solid #0EA5E9' : '2px solid transparent'
-            }}>
-              <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.d} />
-              </svg>
-              {item.label}
-            </div>
-          ))}
-        </nav>
-
-        <div style={{ padding: '16px 20px', borderTop: '1px solid #27272A' }}>
-          <div style={{ fontSize: 11, color: '#52525B' }}>Historial de análisis</div>
-        </div>
-      </aside>
+      <Sidebar
+        userEmail={userEmail}
+        userRole={userRole}
+        activePage="/historial"
+        onLogout={handleLogout}
+      />
 
       {/* MAIN */}
       <main style={{ flex: 1, overflowY: 'auto' }}>
 
-        {/* Topbar */}
-        <div style={{ background: '#fff', borderBottom: '1px solid #E4E4E7', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
+        {/* Topbar desktop */}
+        <div className="topbar-desktop" style={{ background: '#fff', borderBottom: '1px solid #E4E4E7', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20 }}>
           <h1 style={{ fontSize: 18, fontWeight: 700, color: '#09090B', letterSpacing: '-0.02em' }}>Historial completo</h1>
           <span style={{ fontSize: 12, color: '#A1A1AA' }}>Últimos 50 registros</span>
         </div>
 
-        <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Espacio topbar mobile */}
+        <div className="topbar-mobile-space" style={{ display: 'none', height: 56 }} />
 
-          {/* Filtros */}
-          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', padding: 20, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <label style={{ fontSize: 11, fontWeight: 500, color: '#52525B', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cámara</label>
-              <select
-                value={filtroCamera}
-                onChange={e => setFiltroCamera(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E4E7', background: '#FAFAFA', color: '#09090B', outline: 'none', boxSizing: 'border-box' }}
-              >
-                <option value="">Todas las cámaras</option>
-                {cameras.map(cam => <option key={cam.id} value={cam.id}>{cam.name}</option>)}
-              </select>
+        <div style={{ padding: 28 }} className="main-padding">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* Filtros */}
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', padding: 20, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={{ fontSize: 11, fontWeight: 500, color: '#52525B', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cámara</label>
+                <select
+                  value={filtroCamera}
+                  onChange={e => setFiltroCamera(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E4E7', background: '#FAFAFA', color: '#09090B', outline: 'none', boxSizing: 'border-box' }}
+                >
+                  <option value="">Todas las cámaras</option>
+                  {cameras.map(cam => <option key={cam.id} value={cam.id}>{cam.name}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={{ fontSize: 11, fontWeight: 500, color: '#52525B', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desde fecha</label>
+                <input
+                  type="date"
+                  value={filtroFecha}
+                  onChange={e => setFiltroFecha(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E4E7', background: '#FAFAFA', color: '#09090B', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => loadData(filtroCamera, filtroFecha)} style={{ padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: '#0EA5E9', color: '#fff' }}>
+                  Buscar
+                </button>
+                <button onClick={() => { setFiltroCamera(''); setFiltroFecha(''); loadData('', '') }} style={{ padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, border: '1px solid #E4E4E7', cursor: 'pointer', background: '#fff', color: '#71717A' }}>
+                  Limpiar
+                </button>
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <label style={{ fontSize: 11, fontWeight: 500, color: '#52525B', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desde fecha</label>
-              <input
-                type="date"
-                value={filtroFecha}
-                onChange={e => setFiltroFecha(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E4E7', background: '#FAFAFA', color: '#09090B', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
+
+            {/* Tabs */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => loadData(filtroCamera, filtroFecha)}
-                style={{ padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: '#0EA5E9', color: '#fff' }}
-              >
-                Buscar
-              </button>
-              <button
-                onClick={() => { setFiltroCamera(''); setFiltroFecha(''); loadData('', '') }}
-                style={{ padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, border: '1px solid #E4E4E7', cursor: 'pointer', background: '#fff', color: '#71717A' }}
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            {[
-              { key: 'analisis', label: `Análisis (${analyses.length})` },
-              { key: 'alertas', label: `Alertas (${alerts.length})` },
-            ].map(t => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key as any)}
-                style={{
+              {[
+                { key: 'analisis', label: `Análisis (${analyses.length})` },
+                { key: 'alertas', label: `Alertas (${alerts.length})` },
+              ].map(t => (
+                <button key={t.key} onClick={() => setTab(t.key as any)} style={{
                   padding: '8px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500,
                   border: tab === t.key ? 'none' : '1px solid #E4E4E7',
                   cursor: 'pointer',
                   background: tab === t.key ? '#09090B' : '#fff',
                   color: tab === t.key ? '#fff' : '#71717A',
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+                }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
 
-          {/* Tabla análisis */}
-          {tab === 'analisis' && (
-            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              {analyses.length === 0 ? (
-                <div style={{ padding: '48px', textAlign: 'center' }}>
-                  <p style={{ fontSize: 13, color: '#A1A1AA' }}>No hay análisis registrados</p>
-                </div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#FAFAFA' }}>
-                      {['Cámara', 'Descripción', 'Recomendación', 'Nivel', 'Estado', 'Fecha'].map(h => (
-                        <th key={h} style={{ fontSize: 10, color: '#A1A1AA', padding: '10px 16px', textAlign: 'left', fontWeight: 500, borderBottom: '1px solid #F4F4F5', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analyses.map((a, i) => (
-                      <tr key={a.id} style={{ borderBottom: i < analyses.length - 1 ? '1px solid #F4F4F5' : 'none' }}>
-                        <td style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#09090B', whiteSpace: 'nowrap' }}>{a.cameras?.name}</td>
-                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#71717A', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.description}</td>
-                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#0EA5E9', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {a.recomendacion && a.recomendacion !== 'Sin recomendación, estante bien abastecido' ? a.recomendacion : '—'}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div style={{ width: 48, height: 4, background: '#F4F4F5', borderRadius: 2, overflow: 'hidden' }}>
-                              <div style={{ width: `${a.nivel_llenado || 0}%`, height: 4, background: a.status === 'vacio' ? '#EF4444' : '#22C55E', borderRadius: 2 }} />
+            {/* Tabla análisis */}
+            {tab === 'analisis' && (
+              <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'auto' }}>
+                {analyses.length === 0 ? (
+                  <div style={{ padding: '48px', textAlign: 'center' }}>
+                    <p style={{ fontSize: 13, color: '#A1A1AA' }}>No hay análisis registrados</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+                    <thead>
+                      <tr style={{ background: '#FAFAFA' }}>
+                        {['Cámara', 'Descripción', 'Recomendación', 'Nivel', 'Estado', 'Fecha'].map(h => (
+                          <th key={h} style={{ fontSize: 10, color: '#A1A1AA', padding: '10px 16px', textAlign: 'left', fontWeight: 500, borderBottom: '1px solid #F4F4F5', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analyses.map((a, i) => (
+                        <tr key={a.id} style={{ borderBottom: i < analyses.length - 1 ? '1px solid #F4F4F5' : 'none' }}>
+                          <td style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#09090B', whiteSpace: 'nowrap' }}>{a.cameras?.name}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 11, color: '#71717A', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.description}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 11, color: '#0EA5E9', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {a.recomendacion && a.recomendacion !== 'Sin recomendación, estante bien abastecido' ? a.recomendacion : '—'}
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ width: 48, height: 4, background: '#F4F4F5', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ width: `${a.nivel_llenado || 0}%`, height: 4, background: a.status === 'vacio' ? '#EF4444' : '#22C55E', borderRadius: 2 }} />
+                              </div>
+                              <span style={{ fontSize: 10, color: a.status === 'vacio' ? '#EF4444' : '#22C55E', fontWeight: 500 }}>{a.nivel_llenado || 0}%</span>
                             </div>
-                            <span style={{ fontSize: 10, color: a.status === 'vacio' ? '#EF4444' : '#22C55E', fontWeight: 500 }}>{a.nivel_llenado || 0}%</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: a.status === 'vacio' ? '#FEE2E2' : '#DCFCE7', color: a.status === 'vacio' ? '#EF4444' : '#16A34A' }}>
-                            {a.status === 'vacio' ? 'Faltante' : 'OK'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#A1A1AA', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString('es-CL')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-
-          {/* Tabla alertas */}
-          {tab === 'alertas' && (
-            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              {alerts.length === 0 ? (
-                <div style={{ padding: '48px', textAlign: 'center' }}>
-                  <p style={{ fontSize: 13, color: '#A1A1AA' }}>No hay alertas registradas</p>
-                </div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#FAFAFA' }}>
-                      {['Cámara', 'Ubicación', 'Estado', 'Fecha'].map(h => (
-                        <th key={h} style={{ fontSize: 10, color: '#A1A1AA', padding: '10px 16px', textAlign: 'left', fontWeight: 500, borderBottom: '1px solid #F4F4F5', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: a.status === 'vacio' ? '#FEE2E2' : '#DCFCE7', color: a.status === 'vacio' ? '#EF4444' : '#16A34A', whiteSpace: 'nowrap' }}>
+                              {a.status === 'vacio' ? 'Faltante' : 'OK'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontSize: 11, color: '#A1A1AA', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString('es-CL')}</td>
+                        </tr>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {alerts.map((a, i) => (
-                      <tr key={a.id} style={{ borderBottom: i < alerts.length - 1 ? '1px solid #F4F4F5' : 'none' }}>
-                        <td style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#09090B' }}>{a.cameras?.name}</td>
-                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#71717A' }}>{a.cameras?.location}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: a.status === 'activa' ? '#FEE2E2' : '#DCFCE7', color: a.status === 'activa' ? '#EF4444' : '#16A34A' }}>
-                            {a.status === 'activa' ? 'Activa' : 'Resuelta'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: 11, color: '#A1A1AA' }}>{new Date(a.created_at).toLocaleString('es-CL')}</td>
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {/* Tabla alertas */}
+            {tab === 'alertas' && (
+              <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'auto' }}>
+                {alerts.length === 0 ? (
+                  <div style={{ padding: '48px', textAlign: 'center' }}>
+                    <p style={{ fontSize: 13, color: '#A1A1AA' }}>No hay alertas registradas</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 400 }}>
+                    <thead>
+                      <tr style={{ background: '#FAFAFA' }}>
+                        {['Cámara', 'Ubicación', 'Estado', 'Fecha'].map(h => (
+                          <th key={h} style={{ fontSize: 10, color: '#A1A1AA', padding: '10px 16px', textAlign: 'left', fontWeight: 500, borderBottom: '1px solid #F4F4F5', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
+                    </thead>
+                    <tbody>
+                      {alerts.map((a, i) => (
+                        <tr key={a.id} style={{ borderBottom: i < alerts.length - 1 ? '1px solid #F4F4F5' : 'none' }}>
+                          <td style={{ padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#09090B' }}>{a.cameras?.name}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 11, color: '#71717A' }}>{a.cameras?.location}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: a.status === 'activa' ? '#FEE2E2' : '#DCFCE7', color: a.status === 'activa' ? '#EF4444' : '#16A34A', whiteSpace: 'nowrap' }}>
+                              {a.status === 'activa' ? 'Activa' : 'Resuelta'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontSize: 11, color: '#A1A1AA', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString('es-CL')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </main>
+
+      <style>{`
+        .topbar-mobile-space { display: none; }
+        @media (max-width: 768px) {
+          .topbar-desktop { display: none !important; }
+          .topbar-mobile-space { display: block !important; }
+          .main-padding { padding: 16px !important; }
+        }
+      `}</style>
     </div>
   )
 }
