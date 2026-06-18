@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<any[]>([])
   const [analyses, setAnalyses] = useState<any[]>([])
   const [weekData, setWeekData] = useState<any[]>([])
+  const [prediccion, setPrediccion] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -45,6 +46,13 @@ export default function DashboardPage() {
       const fechaFin = new Date(fecha); fechaFin.setHours(23, 59, 59, 999)
       const { data: q } = await supabase.from('analyses').select('id').eq('status', 'vacio').gte('created_at', fecha.toISOString()).lte('created_at', fechaFin.toISOString())
       semana.push({ dia: dias[fecha.getDay()], quiebres: q?.length || 0, esHoy: i === 0 })
+    }
+    try {
+      const predRes = await fetch('/api/prediccion')
+      const predData = await predRes.json()
+      setPrediccion(predData)
+    } catch (e) {
+      console.error('Error prediccion:', e)
     }
     setAlerts(alertsData || []); setAnalyses(analysesData || []); setWeekData(semana)
   }
@@ -82,12 +90,12 @@ export default function DashboardPage() {
           </div>
           <div>
             <div style={{ color: '#fff', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em' }}>VisionStock</div>
-            <div style={{ color: '#52525B', fontSize: 10, marginTop: 1 }}>AI Monitoring</div>
+            <div style={{ color: '#52525B', fontSize: 10, marginTop: 1 }}>monitoreo con IA</div>
           </div>
         </div>
 
         <nav style={{ flex: 1, padding: '4px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ fontSize: 9, color: '#3F3F46', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '12px 8px 6px', fontWeight: 600 }}>Manage</div>
+          <div style={{ fontSize: 9, color: '#3F3F46', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '12px 8px 6px', fontWeight: 600 }}>Menú</div>
           {[
             { label: 'Dashboard', path: '/dashboard', active: true, d: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
             { label: 'Nodo', path: '/nodo', active: false, onlyDueno: true, d: 'M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z', badge: alerts.length > 0 ? alerts.length : null },
@@ -107,8 +115,6 @@ export default function DashboardPage() {
               {item.badge && <span style={{ background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 20 }}>{item.badge}</span>}
             </div>
           ))}
-
-  
         </nav>
 
         <div style={{ padding: '16px 20px', borderTop: '1px solid #27272A', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -183,8 +189,6 @@ export default function DashboardPage() {
           {/* GRÁFICO + TABLA LADO A LADO */}
           {userRole === 'dueno' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr', gap: 16 }}>
-
-              {/* Gráfico */}
               <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', padding: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Esta semana</span>
@@ -202,7 +206,6 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               </div>
 
-              {/* Tabla historial */}
               <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden' }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid #F4F4F5' }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Historial de análisis</span>
@@ -246,13 +249,76 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ALERTAS ABAJO */}
+          {/* PREDICCIÓN DE QUIEBRES */}
+          {userRole === 'dueno' && prediccion && (
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Predicción de quiebres</span>
+                {prediccion.prediccion?.alerta
+                  ? <span style={{ background: '#FEE2E2', color: '#EF4444', fontSize: 10, padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>Hora crítica ahora</span>
+                  : <span style={{ fontSize: 11, color: '#A1A1AA' }}>Últimos 30 días</span>
+                }
+              </div>
+              {prediccion.horas_criticas?.length === 0 && prediccion.dias_criticos?.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#A1A1AA', fontSize: 12 }}>
+                  Sin suficiente historial para predecir.
+                </div>
+              ) : (
+                <>
+                  <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Días con más quiebres</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {prediccion.dias_criticos?.map((d: any, i: number) => {
+                          const maxQ = prediccion.dias_criticos[0].quiebres
+                          return (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: '#374151', minWidth: 90, fontWeight: i === 0 ? 600 : 400 }}>{d.label}</span>
+                              <div style={{ flex: 1, height: 6, background: '#F4F4F5', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: `${(d.quiebres / maxQ) * 100}%`, height: 6, background: i === 0 ? '#EF4444' : '#0EA5E9', borderRadius: 3 }} />
+                              </div>
+                              <span style={{ fontSize: 11, color: '#A1A1AA', minWidth: 20, textAlign: 'right' }}>{d.quiebres}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#52525B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Horas con más quiebres</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {prediccion.horas_criticas?.map((h: any, i: number) => {
+                          const maxQ = prediccion.horas_criticas[0].quiebres
+                          return (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: '#374151', minWidth: 90, fontWeight: i === 0 ? 600 : 400 }}>{h.label}</span>
+                              <div style={{ flex: 1, height: 6, background: '#F4F4F5', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: `${(h.quiebres / maxQ) * 100}%`, height: 6, background: i === 0 ? '#EF4444' : '#0EA5E9', borderRadius: 3 }} />
+                              </div>
+                              <span style={{ fontSize: 11, color: '#A1A1AA', minWidth: 20, textAlign: 'right' }}>{h.quiebres}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  {prediccion.prediccion?.mensaje && (
+                    <div style={{ margin: '0 20px 20px', padding: '10px 14px', background: prediccion.prediccion.alerta ? '#FEF2F2' : '#F0F9FF', borderRadius: 10, border: `1px solid ${prediccion.prediccion.alerta ? '#FECACA' : '#BAE6FD'}` }}>
+                      <p style={{ fontSize: 12, color: prediccion.prediccion.alerta ? '#DC2626' : '#0369A1', margin: 0, lineHeight: 1.6 }}>
+                        {prediccion.prediccion.mensaje}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ALERTAS */}
           <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E4E4E7', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Quiebres detectados</span>
               {alerts.length > 0 && <span style={{ background: '#FEE2E2', color: '#EF4444', fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600 }}>{alerts.length} activas</span>}
             </div>
-
             {alerts.length === 0 ? (
               <div style={{ padding: '36px 20px', textAlign: 'center' }}>
                 <div style={{ width: 44, height: 44, background: '#DCFCE7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
@@ -265,7 +331,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 0 }}>
-                {alerts.map((alert, i) => (
+                {alerts.map((alert) => (
                   <div key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid #F4F4F5', borderRight: '1px solid #F4F4F5' }}>
                     <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#F4F4F5', border: '1px solid #E4E4E7' }}>
                       {alert.analyses?.image_url
@@ -281,7 +347,7 @@ export default function DashboardPage() {
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#09090B' }}>{alert.cameras?.name}</div>
                       <div style={{ fontSize: 11, color: '#71717A', marginTop: 1 }}>{alert.cameras?.location}</div>
                       {alert.analyses?.recomendacion && (
-                        <div style={{ fontSize: 11, color: '#0EA5E9', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{alert.analyses.recomendacion}</div>
+                        <div style={{ fontSize: 11, color: '#0EA5E9', marginTop: 4, lineHeight: 1.5 }}>{alert.analyses.recomendacion}</div>
                       )}
                       <div style={{ fontSize: 10, color: '#A1A1AA', marginTop: 2 }}>{new Date(alert.created_at).toLocaleString('es-CL')}</div>
                     </div>
