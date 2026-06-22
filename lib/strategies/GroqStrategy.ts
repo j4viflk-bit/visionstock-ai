@@ -37,13 +37,14 @@ export class GroqStrategy implements AIStrategy {
               type: 'text',
               text: `Eres un experto en análisis visual de estantes de supermercado. Analiza esta imagen con precisión.${contextoInventario}
 
-INSTRUCCIONES PARA CALCULAR nivel_llenado:
-- Observa TODO el estante visible en la imagen
-- Calcula qué porcentaje del espacio total tiene productos
-- Si hay productos en algunos sectores y vacío en otros, promedia correctamente
-- Ejemplo: estante con mitad izquierda llena y mitad derecha vacía = 50%
-- Ejemplo: estante con 3 de 4 filas con productos = 75%
-- Sé preciso, no subestimes ni sobreestimes
+INSTRUCCIONES PARA CALCULAR nivel_llenado (sigue este método exacto, paso a paso):
+1. Cuenta cuántas filas/repisas horizontales tiene el estante visible en la imagen
+2. Para cada fila, evalúa qué fracción de su espacio horizontal está ocupado por productos (0%, 25%, 50%, 75% o 100%)
+3. Calcula el promedio exacto de todas las filas
+4. Redondea al múltiplo de 5 más cercano (ej: 47% → 45%, 78% → 80%)
+5. Sé consistente: si la misma distribución de productos se repite, el resultado debe ser igual
+- Ejemplo: 4 filas con 100%, 100%, 100%, 20% de ocupación = promedio 80%
+- Ejemplo: 2 filas, una 100% y otra 0% = promedio 50%
 
 Responde SOLO con JSON válido sin texto adicional:
 {"status":"vacio|con_producto|no_estante","confidence":0.9,"nivel_llenado":50,"zonas_vacias":"descripción","productos_detectados":"descripción","recomendacion":"texto","urgencia":"ninguna|baja|media|alta","description":"descripción"}
@@ -62,7 +63,9 @@ Reglas de clasificación:
             }
           ]
         }],
-        temperature: 0.1,
+        temperature: 0,
+        top_p: 0.1,
+        seed: 42,
         max_tokens: 400
       })
     })
