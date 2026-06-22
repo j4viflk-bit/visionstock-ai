@@ -88,6 +88,8 @@ export default function InventarioPage() {
 
   const stockBajo = productos.filter(p => p.stock_actual <= p.stock_minimo).length
   const stockOk = productos.filter(p => p.stock_actual > p.stock_minimo).length
+  const hoyStr = new Date().toISOString().split('T')[0]
+  const vencidos = productos.filter(p => p.fecha_vencimiento && p.fecha_vencimiento < hoyStr).length
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif", background: '#F4F4F5' }}>
@@ -154,6 +156,7 @@ export default function InventarioPage() {
                 { label: 'Total productos', value: productos.length, color: '#09090B', bg: '#fff' },
                 { label: 'Stock bajo', value: stockBajo, color: '#EF4444', bg: '#FEF2F2', border: '#FECACA' },
                 { label: 'Stock OK', value: stockOk, color: '#22C55E', bg: '#F0FDF4', border: '#BBF7D0' },
+                { label: 'Vencidos', value: vencidos, color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
               ].map(s => (
                 <div key={s.label} style={{ background: s.bg, borderRadius: 16, padding: '18px 20px', border: `1px solid ${s.border || '#E4E4E7'}` }}>
                   <div style={{ fontSize: 11, color: '#A1A1AA', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>{s.label}</div>
@@ -260,15 +263,19 @@ export default function InventarioPage() {
                           <div style={{ fontSize: 10, color: '#A1A1AA', marginTop: 4 }}>Mín: {p.stock_minimo} {p.unidad}</div>
                         </td>
                         <td style={{ padding: '12px 16px' }}>
-                          {p.fecha_vencimiento ? (
-                            <span style={{
-                              fontSize: 11, padding: '3px 8px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap',
-                              background: new Date(p.fecha_vencimiento) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? '#FEF2F2' : '#F4F4F5',
-                              color: new Date(p.fecha_vencimiento) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? '#EF4444' : '#71717A'
-                            }}>
-                              {new Date(p.fecha_vencimiento).toLocaleDateString('es-CL')}
-                            </span>
-                          ) : <span style={{ fontSize: 11, color: '#A1A1AA' }}>—</span>}
+                          {p.fecha_vencimiento ? (() => {
+                            const yaVencio = p.fecha_vencimiento < hoyStr
+                            const porVencer = !yaVencio && new Date(p.fecha_vencimiento) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                            return (
+                              <span style={{
+                                fontSize: 11, padding: '3px 8px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap',
+                                background: yaVencio ? '#FEE2E2' : porVencer ? '#FEF2F2' : '#F4F4F5',
+                                color: yaVencio ? '#DC2626' : porVencer ? '#EF4444' : '#71717A'
+                              }}>
+                                {yaVencio ? '⚠ ' : ''}{new Date(p.fecha_vencimiento).toLocaleDateString('es-CL')}
+                              </span>
+                            )
+                          })() : <span style={{ fontSize: 11, color: '#A1A1AA' }}>—</span>}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: p.stock_actual <= p.stock_minimo ? '#FEE2E2' : '#DCFCE7', color: p.stock_actual <= p.stock_minimo ? '#EF4444' : '#16A34A', whiteSpace: 'nowrap' }}>
@@ -294,14 +301,14 @@ export default function InventarioPage() {
       <style>{`
         .topbar-mobile-space { display: none; }
         .btn-mobile { display: none; }
-        .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        .stats-grid { grid-template-columns: repeat(4, 1fr); }
         .form-grid { grid-template-columns: 1fr 1fr; }
         @media (max-width: 768px) {
           .topbar-desktop { display: none !important; }
           .topbar-mobile-space { display: block !important; }
           .btn-mobile { display: block !important; }
           .main-padding { padding: 16px !important; }
-          .stats-grid { grid-template-columns: 1fr !important; }
+          .stats-grid { grid-template-columns: 1fr 1fr !important; }
           .form-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>

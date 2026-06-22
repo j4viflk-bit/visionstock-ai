@@ -51,58 +51,65 @@ export async function POST(req: NextRequest) {
     console.log(`Análisis completado con: ${analyzer.getStrategyName()}`)
     console.log(`Status: ${result.status} | Nivel: ${result.nivel_llenado}%`)
 
-    // 4. Generar recomendación coherente por categoría
-    if (productosEnStock && productosEnStock.length > 0 && result.status === 'vacio') {
-      const textoIA = `${result.productos_detectados} ${result.description} ${result.zonas_vacias}`.toLowerCase()
+    // 4. Generar recomendación coherente por categoría según nivel de llenado
+const nivelLlenado = result.nivel_llenado ?? 50
 
-      const keywordsPorCategoria: Record<string, string[]> = {
-        'snacks': ['snack', 'papa', 'papas', 'chips', 'galleta', 'maiz', 'frito', 'cracker', 'aperitivo', 'bocado', 'bolsa', 'paquete'],
-        'bebidas': ['bebida', 'agua', 'jugo', 'refresco', 'gaseosa', 'cola', 'botella', 'liquido', 'drink', 'lata'],
-        'lacteos': ['lacteo', 'yogur', 'yogurt', 'leche', 'queso', 'mantequilla', 'crema', 'dairy'],
-        'panaderia': ['pan', 'galleta', 'cereal', 'harina', 'pastel', 'torta'],
-      }
+if (nivelLlenado >= 80) {
+  // Estante bien abastecido — solo sugerir orden, sin recomendar reposición
+  result.recomendacion = 'Estante bien abastecido. Se sugiere ordenar y acomodar los productos para mantener una buena presentación.'
+} else if (productosEnStock && productosEnStock.length > 0) {
+  const textoIA = `${result.productos_detectados} ${result.description} ${result.zonas_vacias}`.toLowerCase()
 
-      let categoriaDetectada = ''
-      let maxCoincidencias = 0
+  const keywordsPorCategoria: Record<string, string[]> = {
+    'snacks': ['snack', 'papa', 'papas', 'chips', 'galleta', 'maiz', 'frito', 'cracker', 'aperitivo', 'bocado', 'bolsa', 'paquete'],
+    'bebidas': ['bebida', 'agua', 'jugo', 'refresco', 'gaseosa', 'cola', 'botella', 'liquido', 'drink', 'lata'],
+    'lacteos': ['lacteo', 'yogur', 'yogurt', 'leche', 'queso', 'mantequilla', 'crema', 'dairy'],
+    'panaderia': ['pan', 'galleta', 'cereal', 'harina', 'pastel', 'torta'],
+  }
 
-      for (const [categoria, keywords] of Object.entries(keywordsPorCategoria)) {
-        const coincidencias = keywords.filter(kw => textoIA.includes(kw)).length
-        if (coincidencias > maxCoincidencias) {
-          maxCoincidencias = coincidencias
-          categoriaDetectada = categoria
-        }
-      }
+  let categoriaDetectada = ''
+  let maxCoincidencias = 0
 
-      console.log('Categoría detectada:', categoriaDetectada)
-
-      const productosRelevantes = categoriaDetectada
-        ? productosEnStock.filter((p: any) =>
-            p.categoria.toLowerCase() === categoriaDetectada ||
-            p.categoria.toLowerCase().includes(categoriaDetectada)
-          )
-        : []
-
-      const productosFinales = productosRelevantes.length > 0
-        ? productosRelevantes
-        : productosEnStock
-
-      const disponibles = productosFinales.filter((p: any) => p.stock_actual > p.stock_minimo)
-      const bajoStock = productosFinales.filter((p: any) => p.stock_actual <= p.stock_minimo)
-      const maxProductos = result.nivel_llenado < 30 ? 4 : result.nivel_llenado < 60 ? 3 : 2
-const prioritarios = [...bajoStock, ...disponibles].slice(0, maxProductos)
-
-      let recomendacion = ''
-      const dispP = prioritarios.filter((p: any) => p.stock_actual > p.stock_minimo)
-      const bajoP = prioritarios.filter((p: any) => p.stock_actual <= p.stock_minimo)
-
-      if (dispP.length > 0) {
-        recomendacion += `Reponer desde bodega: ${dispP.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
-      }
-      if (bajoP.length > 0) {
-        recomendacion += `${dispP.length > 0 ? '. ' : ''}Urgente - stock bajo: ${bajoP.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
-      }
-      if (recomendacion) result.recomendacion = recomendacion
+  for (const [categoria, keywords] of Object.entries(keywordsPorCategoria)) {
+    const coincidencias = keywords.filter(kw => textoIA.includes(kw)).length
+    if (coincidencias > maxCoincidencias) {
+      maxCoincidencias = coincidencias
+      categoriaDetectada = categoria
     }
+  }
+
+  console.log('Categoría detectada:', categoriaDetectada)
+
+  const productosRelevantes = categoriaDetectada
+    ? productosEnStock.filter((p: any) =>
+        p.categoria.toLowerCase() === categoriaDetectada ||
+        p.categoria.toLowerCase().includes(categoriaDetectada)
+      )
+    : []
+
+  const productosFinales = productosRelevantes.length > 0
+    ? productosRelevantes
+    : productosEnStock
+
+  const disponibles = productosFinales.filter((p: any) => p.stock_actual > p.stock_minimo)
+  const bajoStock = productosFinales.filter((p: any) => p.stock_actual <= p.stock_minimo)
+
+  // Mientras más vacío el estante, más productos se recomiendan
+  const maxProductos = nivelLlenado < 30 ? 4 : nivelLlenado < 50 ? 3 : 2
+  const prioritarios = [...bajoStock, ...disponibles].slice(0, maxProductos)
+
+  let recomendacion = ''
+  const dispP = prioritarios.filter((p: any) => p.stock_actual > p.stock_minimo)
+  const bajoP = prioritarios.filter((p: any) => p.stock_actual <= p.stock_minimo)
+
+  if (dispP.length > 0) {
+    recomendacion += `Reponer desde bodega: ${dispP.map((p: any) => `${p.nombre} (${p.stock_actual} ${p.unidad} disponibles)`).join(', ')}`
+  }
+  if (bajoP.length > 0) {
+    recomendacion += `${dispP.length > 0 ? '. ' : ''}Urgente - stock bajo: ${bajoP.map((p: any) => `${p.nombre} (solo ${p.stock_actual} ${p.unidad})`).join(', ')}`
+  }
+  if (recomendacion) result.recomendacion = recomendacion
+}
 
     // 5. Si no es un estante válido, no guardar ni generar alerta
     if (result.status === 'no_estante') {
