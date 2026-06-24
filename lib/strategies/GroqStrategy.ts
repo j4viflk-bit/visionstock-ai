@@ -40,8 +40,10 @@ Si hay mas de un estante en la imagen, analiza solo el mas cercano y centrado.
 
 Calcula nivel_llenado (0-100) viendo que porcentaje del estante principal tiene productos. Pequeños espacios entre paquetes individuales NO cuentan como vacio, solo cuenta zonas donde se ve claramente el fondo de la repisa sin productos.
 
+En "productos_detectados" menciona específicamente el tipo de producto que ves (ejemplo: snacks, papas fritas, bebidas, lacteos, galletas) y la marca si es visible. Sé especifico, no genérico.
+
 Responde SOLO con este JSON, sin texto adicional, sin explicaciones:
-{"status":"vacio|con_producto|no_estante","confidence":0.9,"nivel_llenado":50,"zonas_vacias":"breve","productos_detectados":"breve","recomendacion":"texto","urgencia":"ninguna|baja|media|alta","description":"breve"}
+{"status":"vacio|con_producto|no_estante","confidence":0.9,"nivel_llenado":50,"zonas_vacias":"breve","productos_detectados":"breve pero especifico","recomendacion":"texto","urgencia":"ninguna|baja|media|alta","description":"breve"}
 
 Reglas:
 - Si NO es estante de tienda: status=no_estante, nivel_llenado=0
