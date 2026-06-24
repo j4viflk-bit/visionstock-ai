@@ -37,10 +37,15 @@ export async function POST(req: NextRequest) {
     const { data: { publicUrl } } = supabase.storage.from('capturas').getPublicUrl(fileName)
 
     // 2. Obtener productos en stock asociados a esta cámara
-    const { data: productosEnStock } = await supabase
-      .from('productos')
-      .select('nombre, categoria, stock_actual, stock_minimo, unidad')
-      .eq('camera_id', cameraId)
+    const { data: productosEnStockRaw } = await supabase
+  .from('productos')
+  .select('nombre, categoria, stock_actual, stock_minimo, unidad, fecha_vencimiento')
+  .eq('camera_id', cameraId)
+
+const hoyStr = new Date().toISOString().split('T')[0]
+const productosEnStock = (productosEnStockRaw || []).filter(
+  (p: any) => !p.fecha_vencimiento || p.fecha_vencimiento >= hoyStr
+)
 
     console.log('CameraId recibido:', cameraId)
     console.log('Productos encontrados:', JSON.stringify(productosEnStock))

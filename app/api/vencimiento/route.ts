@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     console.log('Error productos:', errorProductos)
 
     if (!productos || productos.length === 0) {
-      return NextResponse.json({ mensaje: 'Sin productos vencidos ni próximos a vencer', vencidos: [], porVencer: [] })
+      return NextResponse.json({ mensaje: 'Sin productos vencidos ni proximos a vencer', vencidos: [], porVencer: [] })
     }
 
     const vencidos = productos.filter((p: any) => p.fecha_vencimiento < hoyStr)
@@ -39,16 +39,16 @@ export async function GET(req: NextRequest) {
 
     if (vencidos.length > 0) {
       const listaVencidos = vencidos.map((p: any) =>
-        `- ${p.nombre} (${camerasMap[p.camera_id] || 'Sin cámara'}): venció el ${new Date(p.fecha_vencimiento).toLocaleDateString('es-CL')}`
+        `- ${p.nombre} (${camerasMap[p.camera_id] || 'Sin camara'}): vencio el ${new Date(p.fecha_vencimiento).toLocaleDateString('es-CL')} - ${p.stock_actual} ${p.unidad}`
       ).join('\n')
-      mensaje += ` Productos VENCIDOS — retirar de inmediato\n\n${listaVencidos}\n\n`
+      mensaje += `Productos VENCIDOS - retirar de inmediato\n\n${listaVencidos}\n\n`
     }
 
     if (porVencer.length > 0) {
       const listaPorVencer = porVencer.map((p: any) =>
-        `- ${p.nombre} (${camerasMap[p.camera_id] || 'Sin cámara'}): vence el ${new Date(p.fecha_vencimiento).toLocaleDateString('es-CL')}`
+        `- ${p.nombre} (${camerasMap[p.camera_id] || 'Sin camara'}): vence el ${new Date(p.fecha_vencimiento).toLocaleDateString('es-CL')} - ${p.stock_actual} ${p.unidad}`
       ).join('\n')
-      mensaje += ` Productos próximos a vencer (7 días o menos)\n\n${listaPorVencer}\n\n`
+      mensaje += `Productos proximos a vencer (7 dias o menos)\n\n${listaPorVencer}\n\n`
     }
 
     mensaje += `Revisa el inventario en VisionStock AI`
@@ -63,8 +63,11 @@ export async function GET(req: NextRequest) {
       })
     })
 
+    const unidadesVencidas = vencidos.reduce((sum: number, p: any) => sum + (p.stock_actual || 0), 0)
+    const unidadesPorVencer = porVencer.reduce((sum: number, p: any) => sum + (p.stock_actual || 0), 0)
+
     return NextResponse.json({
-      mensaje: `${vencidos.length} producto(s) vencido(s) y ${porVencer.length} próximo(s) a vencer`,
+      mensaje: `${vencidos.length} producto(s) vencido(s) (${unidadesVencidas} unidades) y ${porVencer.length} proximo(s) a vencer (${unidadesPorVencer} unidades)`,
       vencidos,
       porVencer
     })

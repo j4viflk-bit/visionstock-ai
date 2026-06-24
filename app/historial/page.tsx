@@ -35,12 +35,12 @@ export default function HistorialPage() {
   const loadData = async (camara = filtroCamera, fecha = filtroFecha) => {
     let analysesQuery = supabase.from('analyses').select('*, cameras(name, location)').order('created_at', { ascending: false }).limit(50)
     if (camara) analysesQuery = analysesQuery.eq('camera_id', camara)
-    if (fecha) analysesQuery = analysesQuery.gte('created_at', new Date(fecha).toISOString())
+    if (fecha) analysesQuery = analysesQuery.gte('created_at', `${fecha}T00:00:00`)
     const { data: analysesData } = await analysesQuery
 
     let alertsQuery = supabase.from('alerts').select('*, cameras(name, location)').order('created_at', { ascending: false }).limit(50)
     if (camara) alertsQuery = alertsQuery.eq('camera_id', camara)
-    if (fecha) alertsQuery = alertsQuery.gte('created_at', new Date(fecha).toISOString())
+    if (fecha) alertsQuery = alertsQuery.gte('created_at', `${fecha}T00:00:00`)
     const { data: alertsData } = await alertsQuery
 
     setAnalyses(analysesData || [])

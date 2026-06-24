@@ -89,7 +89,9 @@ export default function InventarioPage() {
   const stockBajo = productos.filter(p => p.stock_actual <= p.stock_minimo).length
   const stockOk = productos.filter(p => p.stock_actual > p.stock_minimo).length
   const hoyStr = new Date().toISOString().split('T')[0]
-  const vencidos = productos.filter(p => p.fecha_vencimiento && p.fecha_vencimiento < hoyStr).length
+  const productosVencidos = productos.filter(p => p.fecha_vencimiento && p.fecha_vencimiento < hoyStr)
+  const vencidos = productosVencidos.length
+  const unidadesVencidas = productosVencidos.reduce((sum, p) => sum + (p.stock_actual || 0), 0)
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif", background: '#F4F4F5' }}>
@@ -153,14 +155,15 @@ export default function InventarioPage() {
             {/* Stats */}
             <div style={{ display: 'grid', gap: 16 }} className="stats-grid">
               {[
-                { label: 'Total productos', value: productos.length, color: '#09090B', bg: '#fff' },
-                { label: 'Stock bajo', value: stockBajo, color: '#EF4444', bg: '#FEF2F2', border: '#FECACA' },
-                { label: 'Stock OK', value: stockOk, color: '#22C55E', bg: '#F0FDF4', border: '#BBF7D0' },
-                { label: 'Vencidos', value: vencidos, color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
+                { label: 'Total productos', value: productos.length, color: '#09090B', bg: '#fff', sub: null },
+                { label: 'Stock bajo', value: stockBajo, color: '#EF4444', bg: '#FEF2F2', border: '#FECACA', sub: null },
+                { label: 'Stock OK', value: stockOk, color: '#22C55E', bg: '#F0FDF4', border: '#BBF7D0', sub: null },
+                { label: 'Vencidos', value: vencidos, color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', sub: `${unidadesVencidas} unidades` },
               ].map(s => (
-                <div key={s.label} style={{ background: s.bg, borderRadius: 16, padding: '18px 20px', border: `1px solid ${s.border || '#E4E4E7'}` }}>
+                <div key={s.label} style={{ background: s.bg, borderRadius: 16, padding: '18px 20px', border: `1px solid ${(s as any).border || '#E4E4E7'}` }}>
                   <div style={{ fontSize: 11, color: '#A1A1AA', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>{s.label}</div>
                   <div style={{ fontSize: 32, fontWeight: 700, color: s.color, letterSpacing: '-0.03em', lineHeight: 1 }}>{s.value}</div>
+                  {s.sub && <div style={{ fontSize: 11, color: '#A1A1AA', marginTop: 4 }}>{s.sub}</div>}
                 </div>
               ))}
             </div>
